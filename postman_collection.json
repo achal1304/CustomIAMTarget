@@ -1,0 +1,731 @@
+{
+  "info": {
+    "name": "SCIM 2.0 Service Provider API",
+    "description": "Complete API collection for testing the SCIM 2.0 Service Provider with all authentication methods.\n\n## Quick Start\n\n1. Import this collection into Postman\n2. Set the `baseUrl` variable to your server URL (default: http://localhost:5000)\n3. Get authentication tokens from the \"Development > Get All Tokens\" request\n4. Copy a token and set it in the `bearerToken` variable\n5. Start testing!\n\n## Authentication\n\nThis collection includes examples for all three authentication methods:\n- OAuth 2.0 / JWT Bearer Token\n- HTTP Basic Authentication  \n- Mutual TLS (requires certificate configuration)\n\nMost requests use Bearer Token by default. Switch to Basic Auth tab in requests to use username/password.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "groupId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Getting Started",
+      "item": [
+        {
+          "name": "API Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Get API information and available endpoints. No authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Development - Token Generation",
+      "item": [
+        {
+          "name": "Get All Tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-save the full access token",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const token = response.tokens.jwt.full_access.token;",
+                  "    pm.collectionVariables.set('bearerToken', token);",
+                  "    console.log('✓ Bearer token saved to collection variable');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/tokens",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dev", "tokens"]
+            },
+            "description": "Get all pre-generated authentication tokens and credentials. This will automatically save the full_access token to the collection variable."
+          }
+        },
+        {
+          "name": "Generate Custom Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scopes\": [\"scim.read\", \"scim.write\", \"supportingdata.read\"],\n  \"subject\": \"postman-test\",\n  \"expires_in_hours\": 24\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/tokens/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dev", "tokens", "generate"]
+            },
+            "description": "Generate a custom JWT token with specific scopes."
+          }
+        },
+        {
+          "name": "Get Public Key",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dev/tokens/public-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dev", "tokens", "public-key"]
+            },
+            "description": "Get the JWT public key for token validation."
+          }
+        }
+      ],
+      "description": "Token generation endpoints for development and testing. Start here to get authentication credentials!"
+    },
+    {
+      "name": "2. SCIM Discovery (Public)",
+      "item": [
+        {
+          "name": "Service Provider Config",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/ServiceProviderConfig",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "ServiceProviderConfig"]
+            },
+            "description": "Get service provider capabilities. No authentication required."
+          }
+        },
+        {
+          "name": "List Schemas",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Schemas",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Schemas"]
+            },
+            "description": "List all supported SCIM schemas. No authentication required."
+          }
+        },
+        {
+          "name": "Get User Schema",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Schemas", "urn:ietf:params:scim:schemas:core:2.0:User"]
+            },
+            "description": "Get the User schema definition. No authentication required."
+          }
+        },
+        {
+          "name": "List Resource Types",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/ResourceTypes",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "ResourceTypes"]
+            },
+            "description": "List all supported resource types. No authentication required."
+          }
+        }
+      ],
+      "description": "SCIM discovery endpoints - publicly accessible, no authentication required."
+    },
+    {
+      "name": "3. SCIM Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users?startIndex=1&count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"],
+              "query": [
+                {
+                  "key": "startIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                },
+                {
+                  "key": "filter",
+                  "value": "userName eq \"john.doe@example.com\"",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all users with pagination. Requires scim.read scope."
+          }
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save user ID for other requests",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', response.id);",
+                  "    console.log('✓ User ID saved:', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\n    \"urn:ietf:params:scim:schemas:core:2.0:User\",\n    \"urn:ietf:params:scim:schemas:extension:enterprise:2.0:User\"\n  ],\n  \"userName\": \"john.doe@example.com\",\n  \"name\": {\n    \"givenName\": \"John\",\n    \"familyName\": \"Doe\"\n  },\n  \"emails\": [\n    {\n      \"value\": \"john.doe@example.com\",\n      \"type\": \"work\",\n      \"primary\": true\n    }\n  ],\n  \"active\": true,\n  \"department\": \"Engineering\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"]
+            },
+            "description": "Create a new user. Requires scim.write scope. User ID is automatically saved to collection variable."
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users", "{{userId}}"]
+            },
+            "description": "Get a specific user by ID. Requires scim.read scope."
+          }
+        },
+        {
+          "name": "Update User (PATCH)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"replace\",\n      \"path\": \"active\",\n      \"value\": false\n    },\n    {\n      \"op\": \"replace\",\n      \"path\": \"department\",\n      \"value\": \"Sales\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users", "{{userId}}"]
+            },
+            "description": "Update user using SCIM PATCH operations. Requires scim.write scope."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users", "{{userId}}"]
+            },
+            "description": "Delete a user. Requires scim.write scope."
+          }
+        },
+        {
+          "name": "Filter Users by userName",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users?filter=userName eq \"john.doe@example.com\"",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "userName eq \"john.doe@example.com\""
+                }
+              ]
+            },
+            "description": "Filter users by userName. Requires scim.read scope."
+          }
+        },
+        {
+          "name": "Filter Users by active status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users?filter=active eq true",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "active eq true"
+                }
+              ]
+            },
+            "description": "Filter users by active status. Requires scim.read scope."
+          }
+        }
+      ],
+      "description": "SCIM User resource operations. Requires authentication with scim.read or scim.write scopes."
+    },
+    {
+      "name": "4. SCIM Groups",
+      "item": [
+        {
+          "name": "List Groups",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups"]
+            },
+            "description": "List all groups. Requires scim.read scope."
+          }
+        },
+        {
+          "name": "Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save group ID for other requests",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('groupId', response.id);",
+                  "    console.log('✓ Group ID saved:', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:schemas:core:2.0:Group\"],\n  \"displayName\": \"Administrators\",\n  \"members\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups"]
+            },
+            "description": "Create a new group. Requires scim.write scope."
+          }
+        },
+        {
+          "name": "Get Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups", "{{groupId}}"]
+            },
+            "description": "Get a specific group by ID. Requires scim.read scope."
+          }
+        },
+        {
+          "name": "Add Member to Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"add\",\n      \"path\": \"members\",\n      \"value\": [\n        {\n          \"value\": \"{{userId}}\",\n          \"display\": \"John Doe\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups", "{{groupId}}"]
+            },
+            "description": "Add a member to a group. Requires scim.write scope."
+          }
+        },
+        {
+          "name": "Remove Member from Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/scim+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schemas\": [\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"],\n  \"Operations\": [\n    {\n      \"op\": \"remove\",\n      \"path\": \"members[value eq \\\"{{userId}}\\\"]\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups", "{{groupId}}"]
+            },
+            "description": "Remove a member from a group. Requires scim.write scope."
+          }
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Groups", "{{groupId}}"]
+            },
+            "description": "Delete a group. Requires scim.write scope."
+          }
+        }
+      ],
+      "description": "SCIM Group resource operations. Requires authentication with scim.read or scim.write scopes."
+    },
+    {
+      "name": "5. Supporting Data",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/supporting-data/roles?startIndex=1&count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "supporting-data", "roles"],
+              "query": [
+                {
+                  "key": "startIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List all available roles (read-only). Requires supportingdata.read scope."
+          }
+        },
+        {
+          "name": "List Departments",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/supporting-data/departments?startIndex=1&count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "supporting-data", "departments"],
+              "query": [
+                {
+                  "key": "startIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List all available departments (read-only). Requires supportingdata.read scope."
+          }
+        }
+      ],
+      "description": "Supporting data endpoints (read-only). Requires supportingdata.read scope."
+    },
+    {
+      "name": "6. Authentication Examples",
+      "item": [
+        {
+          "name": "Bearer Token Auth",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"]
+            },
+            "description": "Example using Bearer Token authentication (OAuth 2.0 / JWT)."
+          }
+        },
+        {
+          "name": "Basic Auth",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "admin",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "admin123",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/scim/v2/Users",
+              "host": ["{{baseUrl}}"],
+              "path": ["scim", "v2", "Users"]
+            },
+            "description": "Example using HTTP Basic Authentication. Default credentials: admin/admin123"
+          }
+        }
+      ],
+      "description": "Examples showing different authentication methods."
+    }
+  ]
+}

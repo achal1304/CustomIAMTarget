@@ -1,0 +1,904 @@
+openapi: 3.0.3
+info:
+  title: SCIM 2.0 Service Provider API
+  description: |
+    A minimal, standards-compliant SCIM 2.0 Service Provider implementation for enterprise IAM integration.
+    
+    ## Authentication
+    
+    This API supports three authentication methods (all enabled by default):
+    
+    1. **OAuth 2.0 / JWT Bearer Token** (Recommended)
+       - Use `Authorization: Bearer <token>` header
+       - Get tokens from `/api/dev/tokens` endpoint
+    
+    2. **HTTP Basic Authentication**
+       - Use `Authorization: Basic <base64(username:password)>` header
+       - Default credentials: admin/admin123, testuser/testpass123
+    
+    3. **Mutual TLS (mTLS)**
+       - Certificate-based authentication
+       - Configure client certificates
+    
+    ## Quick Start
+    
+    ```bash
+    # Get authentication tokens
+    curl http://localhost:5000/api/dev/tokens
+    
+    # Use a token
+    TOKEN=$(curl -s http://localhost:5000/api/dev/tokens | jq -r '.tokens.jwt.full_access.token')
+    curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/scim/v2/Users
+    
+    # Or use Basic Auth
+    curl -u admin:admin123 http://localhost:5000/scim/v2/Users
+    ```
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: https://your-domain.com
+    description: Production server
+
+tags:
+  - name: Discovery
+    description: SCIM discovery endpoints (public, no authentication required)
+  - name: Users
+    description: SCIM User resource operations
+  - name: Groups
+    description: SCIM Group resource operations
+  - name: Supporting Data
+    description: Read-only supporting data (Roles, Departments)
+  - name: Development
+    description: Token generation endpoints (development/testing only)
+
+security:
+  - BearerAuth: []
+  - BasicAuth: []
+
+paths:
+  /:
+    get:
+      summary: API Root
+      description: Get API information and available endpoints
+      tags:
+        - Discovery
+      security: []
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: SCIM 2.0 Service Provider
+                  version:
+                    type: string
+                    example: 1.0.0
+                  endpoints:
+                    type: object
+
+  /scim/v2/ServiceProviderConfig:
+    get:
+      summary: Get Service Provider Configuration
+      description: Returns SCIM service provider capabilities and configuration
+      tags:
+        - Discovery
+      security: []
+      responses:
+        '200':
+          description: Service provider configuration
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/ServiceProviderConfig'
+
+  /scim/v2/Schemas:
+    get:
+      summary: List all schemas
+      description: Returns all supported SCIM schemas
+      tags:
+        - Discovery
+      security: []
+      responses:
+        '200':
+          description: List of schemas
+          content:
+            application/scim+json:
+              schema:
+                type: object
+
+  /scim/v2/Schemas/{schemaId}:
+    get:
+      summary: Get specific schema
+      description: Returns a specific SCIM schema by ID
+      tags:
+        - Discovery
+      security: []
+      parameters:
+        - name: schemaId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: urn:ietf:params:scim:schemas:core:2.0:User
+      responses:
+        '200':
+          description: Schema details
+          content:
+            application/scim+json:
+              schema:
+                type: object
+
+  /scim/v2/ResourceTypes:
+    get:
+      summary: List all resource types
+      description: Returns all supported SCIM resource types
+      tags:
+        - Discovery
+      security: []
+      responses:
+        '200':
+          description: List of resource types
+          content:
+            application/scim+json:
+              schema:
+                type: object
+
+  /scim/v2/Users:
+    get:
+      summary: List users
+      description: List all users with optional filtering and pagination
+      tags:
+        - Users
+      parameters:
+        - name: filter
+          in: query
+          description: SCIM filter expression
+          schema:
+            type: string
+          example: userName eq "john.doe@example.com"
+        - name: startIndex
+          in: query
+          description: 1-based index of the first result
+          schema:
+            type: integer
+            default: 1
+        - name: count
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create user
+      description: Create a new user
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/User'
+            example:
+              schemas:
+                - urn:ietf:params:scim:schemas:core:2.0:User
+              userName: john.doe@example.com
+              name:
+                givenName: John
+                familyName: Doe
+              emails:
+                - value: john.doe@example.com
+                  type: work
+                  primary: true
+              active: true
+              department: Engineering
+      responses:
+        '201':
+          description: User created
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /scim/v2/Users/{id}:
+    get:
+      summary: Get user
+      description: Retrieve a specific user by ID
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: User details
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update user
+      description: Update user attributes using SCIM PATCH operations
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+            example:
+              schemas:
+                - urn:ietf:params:scim:api:messages:2.0:PatchOp
+              Operations:
+                - op: replace
+                  path: active
+                  value: false
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete user
+      description: Delete a user
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scim/v2/Groups:
+    get:
+      summary: List groups
+      description: List all groups with optional filtering and pagination
+      tags:
+        - Groups
+      parameters:
+        - name: filter
+          in: query
+          description: SCIM filter expression
+          schema:
+            type: string
+        - name: startIndex
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: count
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/GroupListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create group
+      description: Create a new group
+      tags:
+        - Groups
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/Group'
+            example:
+              schemas:
+                - urn:ietf:params:scim:schemas:core:2.0:Group
+              displayName: Administrators
+              members:
+                - value: user-id-123
+                  display: John Doe
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /scim/v2/Groups/{id}:
+    get:
+      summary: Get group
+      description: Retrieve a specific group by ID
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update group
+      description: Update group attributes using SCIM PATCH operations
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/PatchOp'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete group
+      description: Delete a group
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Group deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/supporting-data/roles:
+    get:
+      summary: List roles
+      description: List all available roles (read-only)
+      tags:
+        - Supporting Data
+      parameters:
+        - name: startIndex
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: count
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/supporting-data/departments:
+    get:
+      summary: List departments
+      description: List all available departments (read-only)
+      tags:
+        - Supporting Data
+      parameters:
+        - name: startIndex
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: count
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/dev/tokens:
+    get:
+      summary: Get all test tokens
+      description: Get all pre-generated authentication tokens and credentials (development only)
+      tags:
+        - Development
+      security: []
+      responses:
+        '200':
+          description: All tokens and credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  warning:
+                    type: string
+                  tokens:
+                    type: object
+                  keys:
+                    type: object
+                  configuration:
+                    type: object
+
+  /api/dev/tokens/generate:
+    post:
+      summary: Generate custom token
+      description: Generate a custom JWT token with specific scopes (development only)
+      tags:
+        - Development
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                  example: ["scim.read", "scim.write"]
+                subject:
+                  type: string
+                  example: test-user
+                expires_in_hours:
+                  type: integer
+                  example: 24
+      responses:
+        '200':
+          description: Token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  payload:
+                    type: object
+                  usage:
+                    type: object
+        '400':
+          description: Invalid scopes
+
+  /api/dev/tokens/public-key:
+    get:
+      summary: Get JWT public key
+      description: Get the public key for JWT token validation (development only)
+      tags:
+        - Development
+      security: []
+      responses:
+        '200':
+          description: Public key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  public_key:
+                    type: string
+                  algorithm:
+                    type: string
+                  usage:
+                    type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token authentication
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic Authentication (username:password)
+
+  schemas:
+    User:
+      type: object
+      required:
+        - schemas
+        - userName
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        schemas:
+          type: array
+          items:
+            type: string
+        userName:
+          type: string
+        externalId:
+          type: string
+        name:
+          type: object
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+        emails:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              type:
+                type: string
+              primary:
+                type: boolean
+        active:
+          type: boolean
+        department:
+          type: string
+        gender:
+          type: string
+        groups:
+          type: array
+          readOnly: true
+          items:
+            type: object
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Group:
+      type: object
+      required:
+        - schemas
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        schemas:
+          type: array
+          items:
+            type: string
+        displayName:
+          type: string
+        externalId:
+          type: string
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+              display:
+                type: string
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    Meta:
+      type: object
+      readOnly: true
+      properties:
+        resourceType:
+          type: string
+        created:
+          type: string
+          format: date-time
+        lastModified:
+          type: string
+          format: date-time
+        location:
+          type: string
+        version:
+          type: string
+
+    PatchOp:
+      type: object
+      required:
+        - schemas
+        - Operations
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+          example: ["urn:ietf:params:scim:api:messages:2.0:PatchOp"]
+        Operations:
+          type: array
+          items:
+            type: object
+            properties:
+              op:
+                type: string
+                enum: [add, remove, replace]
+              path:
+                type: string
+              value:
+                oneOf:
+                  - type: string
+                  - type: boolean
+                  - type: object
+                  - type: array
+
+    UserListResponse:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    GroupListResponse:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+
+    RoleListResponse:
+      type: object
+      properties:
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              description:
+                type: string
+
+    DepartmentListResponse:
+      type: object
+      properties:
+        totalResults:
+          type: integer
+        startIndex:
+          type: integer
+        itemsPerPage:
+          type: integer
+        Resources:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              description:
+                type: string
+
+    ServiceProviderConfig:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+        documentationUri:
+          type: string
+        patch:
+          type: object
+        bulk:
+          type: object
+        filter:
+          type: object
+        changePassword:
+          type: object
+        sort:
+          type: object
+        etag:
+          type: object
+        authenticationSchemes:
+          type: array
+          items:
+            type: object
+
+    Error:
+      type: object
+      properties:
+        schemas:
+          type: array
+          items:
+            type: string
+          example: ["urn:ietf:params:scim:api:messages:2.0:Error"]
+        status:
+          type: string
+        scimType:
+          type: string
+        detail:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict - Resource already exists
+      content:
+        application/scim+json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+# Made with Bob

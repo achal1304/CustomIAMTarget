@@ -1,0 +1,116 @@
+# Default Authentication Configuration
+# All authentication types are ENABLED by default for IAM integration
+# Copy this file to .env or export these variables
+
+# ============================================================================
+# OAUTH 2.0 / JWT CONFIGURATION (ENABLED)
+# ============================================================================
+AUTH_OAUTH_ENABLED=true
+AUTH_JWT_ENABLED=true
+
+# JWT Issuer and Audience (use token generation endpoint values)
+AUTH_JWT_ISSUER=https://test-idp.example.com
+AUTH_JWT_AUDIENCE=scim-service-provider
+AUTH_JWT_ALGORITHM=RS256
+
+# JWT Public Key - Get from: curl http://localhost:5000/api/dev/tokens/public-key
+# Replace with actual public key from token generation endpoint
+AUTH_JWT_PUBLIC_KEY='-----BEGIN PUBLIC KEY-----
+<REPLACE_WITH_PUBLIC_KEY_FROM_TOKEN_ENDPOINT>
+-----END PUBLIC KEY-----'
+
+# Alternative: JWT Public Key URL (JWKS endpoint)
+# AUTH_JWT_PUBLIC_KEY_URL=https://your-idp.example.com/.well-known/jwks.json
+
+# Token Introspection (alternative to JWT validation)
+AUTH_INTROSPECTION_ENABLED=false
+# AUTH_INTROSPECTION_URL=https://your-idp.example.com/oauth/introspect
+# AUTH_INTROSPECTION_CLIENT_ID=your-client-id
+# AUTH_INTROSPECTION_CLIENT_SECRET=your-client-secret
+
+# ============================================================================
+# BASIC AUTHENTICATION CONFIGURATION (ENABLED)
+# ============================================================================
+AUTH_BASIC_ENABLED=true
+
+# Format: username:sha256_hash,username2:sha256_hash2
+# Get credentials from: curl http://localhost:5000/api/dev/tokens
+# Default users (password hashes are SHA-256):
+#   admin:admin123
+#   testuser:testpass123
+#   readonly:readonly123
+AUTH_BASIC_USERS=admin:8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918,testuser:ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27,readonly:8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92
+
+# ============================================================================
+# MUTUAL TLS (mTLS) CONFIGURATION (ENABLED)
+# ============================================================================
+AUTH_MTLS_ENABLED=true
+
+# Require client certificate for mTLS
+AUTH_MTLS_REQUIRE_CERT=false
+
+# Path to trusted CA certificates for client cert validation
+# AUTH_MTLS_CA_CERTS_PATH=/path/to/ca-certs.pem
+
+# ============================================================================
+# AUTHORIZATION CONFIGURATION
+# ============================================================================
+# Enforce scope-based authorization
+AUTH_ENFORCE_AUTHZ=true
+
+# ============================================================================
+# QUICK SETUP INSTRUCTIONS
+# ============================================================================
+# 
+# 1. Start the server:
+#    python3 app.py
+#
+# 2. Get the public key and tokens:
+#    curl http://localhost:5000/api/dev/tokens | jq
+#
+# 3. Copy the public key from the response and replace 
+#    <REPLACE_WITH_PUBLIC_KEY_FROM_TOKEN_ENDPOINT> above
+#
+# 4. Export these variables or create a .env file:
+#    export $(cat auth.config.default | grep -v '^#' | xargs)
+#
+# 5. Restart the server
+#
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+#
+# Using JWT Token:
+#   TOKEN=$(curl -s http://localhost:5000/api/dev/tokens | jq -r '.tokens.jwt.full_access.token')
+#   curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/scim/v2/Users
+#
+# Using Basic Auth:
+#   curl -u admin:admin123 http://localhost:5000/scim/v2/Users
+#
+# Using mTLS (requires client certificate):
+#   curl --cert client.crt --key client.key http://localhost:5000/scim/v2/Users
+#
+# ============================================================================
+# IAM SYSTEM INTEGRATION
+# ============================================================================
+#
+# Your IAM system can use ANY of these authentication methods:
+#
+# 1. OAuth 2.0 Bearer Tokens (most common)
+#    - Azure AD, Okta, Auth0, etc. can generate JWT tokens
+#    - Configure your IdP to use the public key above
+#
+# 2. HTTP Basic Authentication
+#    - Simple username/password authentication
+#    - Useful for legacy systems or simple integrations
+#
+# 3. Mutual TLS (mTLS)
+#    - Certificate-based authentication
+#    - High security for enterprise environments
+#
+# The system will try all enabled methods in order:
+#   1. OAuth/JWT first (if Authorization: Bearer header present)
+#   2. Basic Auth second (if Authorization: Basic header present)  
+#   3. mTLS third (if client certificate present)
+#
+# ============================================================================

@@ -1,0 +1,73 @@
+# Authentication & Authorization Configuration
+# Copy this file to .env and configure for your environment
+
+# ==================== GENERAL SETTINGS ====================
+# Enable/disable authorization enforcement
+AUTH_ENFORCE_AUTHZ=true
+
+# ==================== OAUTH 2.0 BEARER TOKEN ====================
+# Enable OAuth 2.0 authentication
+AUTH_OAUTH_ENABLED=true
+
+# JWT Validation (recommended for production)
+AUTH_JWT_ENABLED=true
+AUTH_JWT_ISSUER=https://your-idp.example.com
+AUTH_JWT_AUDIENCE=scim-service-provider
+AUTH_JWT_ALGORITHM=RS256
+
+# Option 1: JWKS URL (recommended - supports key rotation)
+AUTH_JWT_PUBLIC_KEY_URL=https://your-idp.example.com/.well-known/jwks.json
+
+# Option 2: Direct public key (PEM format, base64 encoded)
+# AUTH_JWT_PUBLIC_KEY=LS0tLS1CRUdJTi...
+
+# Token Introspection (alternative to JWT)
+AUTH_INTROSPECTION_ENABLED=false
+AUTH_INTROSPECTION_URL=https://your-idp.example.com/oauth2/introspect
+AUTH_INTROSPECTION_CLIENT_ID=scim-service-provider
+AUTH_INTROSPECTION_CLIENT_SECRET=your-client-secret
+
+# ==================== HTTP BASIC AUTHENTICATION ====================
+# Enable Basic Auth (for legacy/non-production only)
+AUTH_BASIC_ENABLED=false
+
+# Basic Auth Credentials (username:sha256_hash pairs, comma-separated)
+# Generate hash: echo -n "password" | sha256sum
+# Example: admin:8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+AUTH_BASIC_USERS=
+
+# ==================== MUTUAL TLS ====================
+# Enable mTLS authentication
+AUTH_MTLS_ENABLED=false
+
+# Require client certificate
+AUTH_MTLS_REQUIRE_CERT=false
+
+# Path to trusted CA certificates
+AUTH_MTLS_CA_CERTS_PATH=/path/to/ca-certs.pem
+
+# ==================== EXAMPLE CONFIGURATIONS ====================
+
+# Example 1: OAuth 2.0 with JWT (Production - Azure AD)
+# AUTH_OAUTH_ENABLED=true
+# AUTH_JWT_ENABLED=true
+# AUTH_JWT_ISSUER=https://login.microsoftonline.com/{tenant-id}/v2.0
+# AUTH_JWT_AUDIENCE=api://scim-service-provider
+# AUTH_JWT_PUBLIC_KEY_URL=https://login.microsoftonline.com/{tenant-id}/discovery/v2.0/keys
+
+# Example 2: OAuth 2.0 with JWT (Production - Okta)
+# AUTH_OAUTH_ENABLED=true
+# AUTH_JWT_ENABLED=true
+# AUTH_JWT_ISSUER=https://your-domain.okta.com/oauth2/default
+# AUTH_JWT_AUDIENCE=api://scim-service-provider
+# AUTH_JWT_PUBLIC_KEY_URL=https://your-domain.okta.com/oauth2/default/v1/keys
+
+# Example 3: Basic Auth (Development/Testing only)
+# AUTH_OAUTH_ENABLED=false
+# AUTH_BASIC_ENABLED=true
+# AUTH_BASIC_USERS=admin:8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+
+# Example 4: No Authentication (Local Development only)
+# AUTH_OAUTH_ENABLED=false
+# AUTH_BASIC_ENABLED=false
+# AUTH_MTLS_ENABLED=false

@@ -1,0 +1,18 @@
+# Web Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# API Documentation
+flask-swagger-ui==4.11.1
+PyYAML==6.0.1
+
+# Authentication & Authorization
+PyJWT==2.8.0
+cryptography==41.0.7
+requests==2.31.0
+
+# Development Server (optional, Flask has built-in)
+# gunicorn==21.2.0  # For production deployment
+
+# Testing (already in tests/requirements.txt)
+# pytest==7.4.3

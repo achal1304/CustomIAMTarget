@@ -1,0 +1,170 @@
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+  "id": "urn:ietf:params:scim:schemas:core:2.0:Group",
+  "name": "Group",
+  "description": "SCIM 2.0 Group Resource - Minimal Implementation for Roles",
+  "attributes": [
+    {
+      "name": "id",
+      "type": "string",
+      "multiValued": false,
+      "description": "Unique identifier for the Group, typically a UUID",
+      "required": true,
+      "caseExact": true,
+      "mutability": "readOnly",
+      "returned": "always",
+      "uniqueness": "server"
+    },
+    {
+      "name": "displayName",
+      "type": "string",
+      "multiValued": false,
+      "description": "A human-readable name for the Group",
+      "required": true,
+      "caseExact": false,
+      "mutability": "readWrite",
+      "returned": "always",
+      "uniqueness": "none"
+    },
+    {
+      "name": "externalId",
+      "type": "string",
+      "multiValued": false,
+      "description": "Identifier from the provisioning client (e.g., Azure AD, Okta)",
+      "required": false,
+      "caseExact": true,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none"
+    },
+    {
+      "name": "members",
+      "type": "complex",
+      "multiValued": true,
+      "description": "A list of members of the Group (User references only)",
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "subAttributes": [
+        {
+          "name": "value",
+          "type": "string",
+          "multiValued": false,
+          "description": "Identifier of the member User",
+          "required": true,
+          "caseExact": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "type": "reference",
+          "referenceTypes": ["User"],
+          "multiValued": false,
+          "description": "The URI of the member User",
+          "required": false,
+          "caseExact": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "multiValued": false,
+          "description": "Type of member (always User)",
+          "required": false,
+          "caseExact": false,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none",
+          "canonicalValues": ["User"]
+        },
+        {
+          "name": "display",
+          "type": "string",
+          "multiValued": false,
+          "description": "A human-readable name for the member",
+          "required": false,
+          "caseExact": false,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        }
+      ]
+    },
+    {
+      "name": "meta",
+      "type": "complex",
+      "multiValued": false,
+      "description": "Resource metadata",
+      "required": false,
+      "mutability": "readOnly",
+      "returned": "default",
+      "uniqueness": "none",
+      "subAttributes": [
+        {
+          "name": "resourceType",
+          "type": "string",
+          "multiValued": false,
+          "description": "The name of the resource type",
+          "required": true,
+          "caseExact": true,
+          "mutability": "readOnly",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "created",
+          "type": "dateTime",
+          "multiValued": false,
+          "description": "The DateTime the Resource was added to the service provider",
+          "required": false,
+          "caseExact": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "lastModified",
+          "type": "dateTime",
+          "multiValued": false,
+          "description": "The most recent DateTime the Resource was updated",
+          "required": false,
+          "caseExact": false,
+          "mutability": "readOnly",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "location",
+          "type": "string",
+          "multiValued": false,
+          "description": "The URI of the Resource",
+          "required": false,
+          "caseExact": true,
+          "mutability": "readOnly",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "multiValued": false,
+          "description": "The version of the Resource (ETag)",
+          "required": false,
+          "caseExact": true,
+          "mutability": "readOnly",
+          "returned": "default",
+          "uniqueness": "none"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "resourceType": "Schema",
+    "location": "/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
+  }
+}

@@ -1,0 +1,22 @@
+# Test Dependencies for Supporting Data API Tests
+# Install with: pip install -r requirements.txt
+
+# Testing framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-html==4.1.1
+pytest-xdist==3.5.0
+
+# HTTP client
+requests==2.31.0
+
+# Test utilities
+pytest-timeout==2.2.0
+pytest-mock==3.12.0
+
+# Code quality
+flake8==7.0.0
+black==23.12.1
+
+# Optional: For advanced assertions
+assertpy==1.1

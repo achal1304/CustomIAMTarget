@@ -1,0 +1,80 @@
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+  "id": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+  "name": "EnterpriseUser",
+  "description": "SCIM 2.0 Enterprise User Extension",
+  "attributes": [
+    {
+      "name": "employeeNumber",
+      "type": "string",
+      "multiValued": false,
+      "description": "Numeric or alphanumeric identifier assigned to a person, typically based on order of hire or association with an organization",
+      "required": false,
+      "caseExact": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none"
+    },
+    {
+      "name": "department",
+      "type": "string",
+      "multiValued": false,
+      "description": "Identifies the name of a department",
+      "required": false,
+      "caseExact": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none"
+    },
+    {
+      "name": "manager",
+      "type": "complex",
+      "multiValued": false,
+      "description": "The user's manager",
+      "required": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none",
+      "subAttributes": [
+        {
+          "name": "value",
+          "type": "string",
+          "multiValued": false,
+          "description": "The id of the SCIM resource representing the User's manager",
+          "required": true,
+          "caseExact": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "$ref",
+          "type": "reference",
+          "referenceTypes": ["User"],
+          "multiValued": false,
+          "description": "The URI of the SCIM resource representing the User's manager",
+          "required": false,
+          "caseExact": true,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        },
+        {
+          "name": "displayName",
+          "type": "string",
+          "multiValued": false,
+          "description": "The displayName of the User's manager (optional, informational)",
+          "required": false,
+          "caseExact": false,
+          "mutability": "readWrite",
+          "returned": "default",
+          "uniqueness": "none"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "resourceType": "Schema",
+    "location": "/Schemas/urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+  }
+}
