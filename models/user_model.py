@@ -298,13 +298,14 @@ class User:
         return result
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], user_repository=None) -> 'User':
+    def from_dict(cls, data: Dict[str, Any], user_repository=None, supporting_data_repo=None) -> 'User':
         """
         Create User from SCIM-compliant dictionary
         
         Args:
             data: SCIM User resource dictionary
             user_repository: Optional repository for manager validation
+            supporting_data_repo: Optional repository for department validation
         
         Returns:
             User instance
@@ -357,6 +358,18 @@ class User:
             # Parse department and employeeNumber from enterprise extension
             department = enterprise_data.get("department")
             employee_number = enterprise_data.get("employeeNumber")
+        
+        # Also accept department at root level for convenience (non-standard but common)
+        if not department and "department" in data:
+            department = data.get("department")
+        
+        # Validate department against predefined values
+        if department and supporting_data_repo:
+            if not supporting_data_repo.validate_department_name(department):
+                valid_depts = [d.name for d in supporting_data_repo.get_all_departments()]
+                raise ValidationError(
+                    f"Invalid department '{department}'. Must be one of: {', '.join(valid_depts)}"
+                )
         
         # Create user
         user = cls(

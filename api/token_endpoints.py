@@ -8,8 +8,9 @@ import jwt
 import datetime
 import hashlib
 import base64
+import os
 from flask import jsonify, request
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -18,11 +19,59 @@ from cryptography.hazmat.backends import default_backend
 class TokenEndpoints:
     """Token generation endpoints for testing"""
     
-    def __init__(self):
-        """Initialize with a test RSA key pair"""
-        self.private_key, self.public_key = self._generate_rsa_keys()
+    # Class-level key storage to persist across instances
+    _private_key = None
+    _public_key = None
+    _keys_file = '.test_keys.pem'
     
-    def _generate_rsa_keys(self):
+    def __init__(self):
+        """Initialize with a persistent test RSA key pair"""
+        self.private_key, self.public_key = self._get_or_generate_keys()
+    
+    @classmethod
+    def _get_or_generate_keys(cls) -> Tuple[bytes, bytes]:
+        """Get existing keys or generate new ones (persisted to file)"""
+        # Return cached keys if available
+        if cls._private_key and cls._public_key:
+            return cls._private_key, cls._public_key
+        
+        # Try to load from file
+        if os.path.exists(cls._keys_file):
+            try:
+                with open(cls._keys_file, 'rb') as f:
+                    content = f.read()
+                    # Split by marker
+                    parts = content.split(b'-----END PRIVATE KEY-----')
+                    if len(parts) == 2:
+                        private_pem = parts[0] + b'-----END PRIVATE KEY-----'
+                        public_pem = parts[1].strip()
+                        cls._private_key = private_pem
+                        cls._public_key = public_pem
+                        print(f"✓ Loaded existing RSA keys from {cls._keys_file}")
+                        return cls._private_key, cls._public_key
+            except Exception as e:
+                print(f"⚠️  Failed to load keys from {cls._keys_file}: {e}")
+        
+        # Generate new keys
+        print(f"Generating new RSA key pair and saving to {cls._keys_file}...")
+        cls._private_key, cls._public_key = cls._generate_rsa_keys()
+        
+        # Save to file
+        try:
+            with open(cls._keys_file, 'wb') as f:
+                f.write(cls._private_key)
+                f.write(b'\n')
+                f.write(cls._public_key)
+            print(f"✓ Saved RSA keys to {cls._keys_file}")
+            print(f"⚠️  IMPORTANT: Update your .env file with this public key:")
+            print(f"   Run: curl http://localhost:5000/api/dev/tokens/public-key")
+        except Exception as e:
+            print(f"⚠️  Failed to save keys to {cls._keys_file}: {e}")
+        
+        return cls._private_key, cls._public_key
+    
+    @classmethod
+    def _generate_rsa_keys(cls) -> Tuple[bytes, bytes]:
         """Generate RSA key pair for JWT signing"""
         private_key = rsa.generate_private_key(
             public_exponent=65537,

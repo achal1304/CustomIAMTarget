@@ -7,6 +7,11 @@ from flask import Flask, request, jsonify, make_response, g, send_from_directory
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Dict, Any, Optional, List
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+# override=False ensures test environment variables are not overwritten
+load_dotenv(override=False)
 
 # Import existing endpoint classes
 from api.user_endpoints import UserEndpoints, SCIMError as UserSCIMError
@@ -108,7 +113,7 @@ group_repo = GroupRepository()
 supporting_data_repo = SupportingDataRepository()
 
 # Initialize endpoint controllers
-user_endpoints = UserEndpoints(user_repo, group_repo)
+user_endpoints = UserEndpoints(user_repo, group_repo, supporting_data_repo)
 group_endpoints = GroupEndpoints(group_repo, user_repo)
 discovery_endpoints = DiscoveryEndpoints(SCIM_BASE_URL)
 supporting_data_endpoints = SupportingDataEndpoints(supporting_data_repo)
@@ -550,6 +555,7 @@ Available Endpoints:
 Server starting...
 """)
     
-    app.run(host=host, port=port, debug=debug)
+    # Disable reloader to avoid double-loading and environment variable issues
+    app.run(host=host, port=port, debug=debug, use_reloader=False)
 
 # Made with Bob

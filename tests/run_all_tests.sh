@@ -10,9 +10,9 @@ echo "=========================================="
 echo ""
 
 # Check if pytest is installed
-if ! command -v pytest &> /dev/null; then
+if ! python3 -m pytest --version &> /dev/null; then
     echo "Error: pytest is not installed"
-    echo "Please run: pip install -r tests/requirements.txt"
+    echo "Please run: pip3 install -r tests/requirements.txt"
     exit 1
 fi
 
@@ -23,7 +23,7 @@ echo "Running all tests with coverage..."
 echo ""
 
 # Run all tests with coverage
-pytest tests/ \
+python3 -m pytest tests/ \
     --verbose \
     --tb=short \
     --cov=. \
@@ -44,14 +44,14 @@ echo "To view HTML coverage report:"
 echo "  open tests/htmlcov/index.html"
 echo ""
 echo "To run specific test suites:"
-echo "  pytest tests/test_scim_users_api.py -v"
-echo "  pytest tests/test_scim_groups_api.py -v"
-echo "  pytest tests/test_scim_discovery_api.py -v"
-echo "  pytest tests/test_supporting_data_complete.py -v"
+echo "  python3 -m pytest tests/test_scim_users_api.py -v"
+echo "  python3 -m pytest tests/test_scim_groups_api.py -v"
+echo "  python3 -m pytest tests/test_scim_discovery_api.py -v"
+echo "  python3 -m pytest tests/test_supporting_data_complete.py -v"
 echo ""
 echo "To run tests with specific markers:"
-echo "  pytest -m integration -v"
-echo "  pytest -m security -v"
+echo "  python3 -m pytest -m integration -v"
+echo "  python3 -m pytest -m security -v"
 echo ""
 
 # Made with Bob

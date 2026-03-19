@@ -11,13 +11,6 @@ import json
 from app import app, user_repo, group_repo
 
 
-@pytest.fixture
-def client():
-    """Flask test client"""
-    app.config['TESTING'] = True
-    with app.test_client() as client:
-        yield client
-
 
 @pytest.fixture(autouse=True)
 def reset_repos():
@@ -32,7 +25,7 @@ def reset_repos():
 class TestUsersCreate:
     """Test POST /scim/v2/Users - Create user"""
     
-    def test_create_user_minimal(self, client):
+    def test_create_user_minimal(self, client, auth_headers):
         """Test creating user with minimal required fields"""
         user_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -40,9 +33,7 @@ class TestUsersCreate:
             "active": True
         }
         
-        response = client.post('/scim/v2/Users',
-                              json=user_data,
-                              content_type='application/json')
+        response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers, content_type='application/json')
         
         assert response.status_code == 201
         data = response.get_json()
@@ -54,7 +45,7 @@ class TestUsersCreate:
         assert data['meta']['resourceType'] == 'User'
         assert 'Location' in response.headers
     
-    def test_create_user_full(self, client):
+    def test_create_user_full(self, client, auth_headers):
         """Test creating user with all fields"""
         user_data = {
             "schemas": [
@@ -84,9 +75,7 @@ class TestUsersCreate:
             }
         }
         
-        response = client.post('/scim/v2/Users',
-                              json=user_data,
-                              content_type='application/json')
+        response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers, content_type='application/json')
         
         assert response.status_code == 201
         data = response.get_json()
@@ -96,7 +85,7 @@ class TestUsersCreate:
         assert data['emails'][0]['value'] == "jane.smith@example.com"
         assert data['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User']['department'] == "Engineering"
     
-    def test_create_user_duplicate_username(self, client):
+    def test_create_user_duplicate_username(self, client, auth_headers):
         """Test creating user with duplicate userName"""
         user_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -105,30 +94,30 @@ class TestUsersCreate:
         }
         
         # Create first user
-        response1 = client.post('/scim/v2/Users', json=user_data)
+        response1 = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         assert response1.status_code == 201
         
         # Try to create duplicate
-        response2 = client.post('/scim/v2/Users', json=user_data)
+        response2 = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         assert response2.status_code == 409
         data = response2.get_json()
         assert data['scimType'] == 'uniqueness'
     
-    def test_create_user_missing_schema(self, client):
+    def test_create_user_missing_schema(self, client, auth_headers):
         """Test creating user without required schema"""
         user_data = {
             "userName": "test@example.com",
             "active": True
         }
         
-        response = client.post('/scim/v2/Users', json=user_data)
+        response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         assert response.status_code == 400
 
 
 class TestUsersGet:
     """Test GET /scim/v2/Users/{id} - Retrieve user"""
     
-    def test_get_user_success(self, client):
+    def test_get_user_success(self, client, auth_headers):
         """Test retrieving existing user"""
         # Create user first
         user_data = {
@@ -136,20 +125,20 @@ class TestUsersGet:
             "userName": "get.test@example.com",
             "active": True
         }
-        create_response = client.post('/scim/v2/Users', json=user_data)
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
         # Get user
-        response = client.get(f'/scim/v2/Users/{user_id}')
+        response = client.get(f'/scim/v2/Users/{user_id}', headers=auth_headers)
         
         assert response.status_code == 200
         data = response.get_json()
         assert data['id'] == user_id
         assert data['userName'] == "get.test@example.com"
     
-    def test_get_user_not_found(self, client):
+    def test_get_user_not_found(self, client, auth_headers):
         """Test retrieving non-existent user"""
-        response = client.get('/scim/v2/Users/non-existent-id')
+        response = client.get('/scim/v2/Users/non-existent-id', headers=auth_headers)
         
         assert response.status_code == 404
         data = response.get_json()
@@ -159,9 +148,9 @@ class TestUsersGet:
 class TestUsersList:
     """Test GET /scim/v2/Users - List users"""
     
-    def test_list_users_empty(self, client):
+    def test_list_users_empty(self, client, auth_headers):
         """Test listing users when none exist"""
-        response = client.get('/scim/v2/Users')
+        response = client.get('/scim/v2/Users', headers=auth_headers)
         
         assert response.status_code == 200
         data = response.get_json()
@@ -171,7 +160,7 @@ class TestUsersList:
         assert data['itemsPerPage'] == 0
         assert data['Resources'] == []
     
-    def test_list_users_with_data(self, client):
+    def test_list_users_with_data(self, client, auth_headers):
         """Test listing users with data"""
         # Create multiple users
         for i in range(5):
@@ -180,9 +169,9 @@ class TestUsersList:
                 "userName": f"user{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
-        response = client.get('/scim/v2/Users')
+        response = client.get('/scim/v2/Users', headers=auth_headers)
         
         assert response.status_code == 200
         data = response.get_json()
@@ -190,7 +179,7 @@ class TestUsersList:
         assert data['totalResults'] == 5
         assert len(data['Resources']) == 5
     
-    def test_list_users_pagination(self, client):
+    def test_list_users_pagination(self, client, auth_headers):
         """Test pagination parameters"""
         # Create 10 users
         for i in range(10):
@@ -199,10 +188,10 @@ class TestUsersList:
                 "userName": f"page{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
         # Get first page
-        response = client.get('/scim/v2/Users?startIndex=1&count=3')
+        response = client.get('/scim/v2/Users?startIndex=1&count=3', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 10
@@ -210,7 +199,7 @@ class TestUsersList:
         assert data['itemsPerPage'] == 3
         assert len(data['Resources']) == 3
     
-    def test_list_users_pagination_second_page(self, client):
+    def test_list_users_pagination_second_page(self, client, auth_headers):
         """Test getting second page of results"""
         # Create 10 users
         for i in range(10):
@@ -219,10 +208,10 @@ class TestUsersList:
                 "userName": f"page{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
         # Get second page
-        response = client.get('/scim/v2/Users?startIndex=4&count=3')
+        response = client.get('/scim/v2/Users?startIndex=4&count=3', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 10
@@ -230,7 +219,7 @@ class TestUsersList:
         assert data['itemsPerPage'] == 3
         assert len(data['Resources']) == 3
     
-    def test_list_users_pagination_last_page(self, client):
+    def test_list_users_pagination_last_page(self, client, auth_headers):
         """Test getting last page with fewer items"""
         # Create 10 users
         for i in range(10):
@@ -239,10 +228,10 @@ class TestUsersList:
                 "userName": f"page{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
         # Get last page (should have only 1 item)
-        response = client.get('/scim/v2/Users?startIndex=10&count=3')
+        response = client.get('/scim/v2/Users?startIndex=10&count=3', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 10
@@ -250,7 +239,7 @@ class TestUsersList:
         assert data['itemsPerPage'] == 1
         assert len(data['Resources']) == 1
     
-    def test_list_users_pagination_beyond_results(self, client):
+    def test_list_users_pagination_beyond_results(self, client, auth_headers):
         """Test pagination beyond available results"""
         # Create 5 users
         for i in range(5):
@@ -259,10 +248,10 @@ class TestUsersList:
                 "userName": f"page{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
         # Request page beyond results
-        response = client.get('/scim/v2/Users?startIndex=10&count=3')
+        response = client.get('/scim/v2/Users?startIndex=10&count=3', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 5
@@ -270,23 +259,23 @@ class TestUsersList:
         assert data['itemsPerPage'] == 0
         assert len(data['Resources']) == 0
     
-    def test_list_users_pagination_invalid_start_index(self, client):
+    def test_list_users_pagination_invalid_start_index(self, client, auth_headers):
         """Test invalid startIndex (< 1)"""
-        response = client.get('/scim/v2/Users?startIndex=0&count=10')
+        response = client.get('/scim/v2/Users?startIndex=0&count=10', headers=auth_headers)
         
         assert response.status_code == 400
         data = response.get_json()
         assert 'startIndex must be >= 1' in data['detail']
     
-    def test_list_users_pagination_invalid_count(self, client):
+    def test_list_users_pagination_invalid_count(self, client, auth_headers):
         """Test invalid count (< 0)"""
-        response = client.get('/scim/v2/Users?startIndex=1&count=-5')
+        response = client.get('/scim/v2/Users?startIndex=1&count=-5', headers=auth_headers)
         
         assert response.status_code == 400
         data = response.get_json()
         assert 'count must be >= 0' in data['detail']
     
-    def test_list_users_pagination_count_zero(self, client):
+    def test_list_users_pagination_count_zero(self, client, auth_headers):
         """Test count=0 returns no results"""
         # Create users
         for i in range(5):
@@ -295,78 +284,78 @@ class TestUsersList:
                 "userName": f"page{i}@example.com",
                 "active": True
             }
-            client.post('/scim/v2/Users', json=user_data)
+            client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         
-        response = client.get('/scim/v2/Users?startIndex=1&count=0')
+        response = client.get('/scim/v2/Users?startIndex=1&count=0', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 5
         assert data['itemsPerPage'] == 0
         assert len(data['Resources']) == 0
     
-    def test_list_users_filter(self, client):
+    def test_list_users_filter(self, client, auth_headers):
         """Test filtering users"""
         # Create users
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "active@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "inactive@example.com",
             "active": False
-        })
+        }, headers=auth_headers)
         
         # Filter by active
-        response = client.get('/scim/v2/Users?filter=active eq true')
+        response = client.get('/scim/v2/Users?filter=active eq true', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
         assert data['Resources'][0]['userName'] == "active@example.com"
     
-    def test_list_users_filter_username_eq(self, client):
+    def test_list_users_filter_username_eq(self, client, auth_headers):
         """Test filtering by userName with eq operator"""
         # Create users
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "john.doe@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "jane.smith@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         
         # Filter by userName
-        response = client.get('/scim/v2/Users?filter=userName eq "john.doe@example.com"')
+        response = client.get('/scim/v2/Users?filter=userName eq "john.doe@example.com"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
         assert data['Resources'][0]['userName'] == "john.doe@example.com"
     
-    def test_list_users_filter_username_co(self, client):
+    def test_list_users_filter_username_co(self, client, auth_headers):
         """Test filtering by userName with co (contains) operator"""
         # Create users
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "john.doe@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "jane.smith@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "bob.jones@test.com",
             "active": True
-        })
+        }, headers=auth_headers)
         
         # Filter by userName contains "example"
-        response = client.get('/scim/v2/Users?filter=userName co "example"')
+        response = client.get('/scim/v2/Users?filter=userName co "example"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 2
@@ -374,54 +363,54 @@ class TestUsersList:
         assert "john.doe@example.com" in usernames
         assert "jane.smith@example.com" in usernames
     
-    def test_list_users_filter_username_sw(self, client):
+    def test_list_users_filter_username_sw(self, client, auth_headers):
         """Test filtering by userName with sw (starts with) operator"""
         # Create users
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "john.doe@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "jane.smith@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "bob.jones@test.com",
             "active": True
-        })
+        }, headers=auth_headers)
         
         # Filter by userName starts with "john"
-        response = client.get('/scim/v2/Users?filter=userName sw "john"')
+        response = client.get('/scim/v2/Users?filter=userName sw "john"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
         assert data['Resources'][0]['userName'] == "john.doe@example.com"
     
-    def test_list_users_filter_username_ew(self, client):
+    def test_list_users_filter_username_ew(self, client, auth_headers):
         """Test filtering by userName with ew (ends with) operator"""
         # Create users
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "john.doe@example.com",
             "active": True
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "jane.smith@test.com",
             "active": True
-        })
+        }, headers=auth_headers)
         
         # Filter by userName ends with "example.com"
-        response = client.get('/scim/v2/Users?filter=userName ew "example.com"')
+        response = client.get('/scim/v2/Users?filter=userName ew "example.com"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
         assert data['Resources'][0]['userName'] == "john.doe@example.com"
     
-    def test_list_users_filter_department(self, client):
+    def test_list_users_filter_department(self, client, auth_headers):
         """Test filtering by department (enterprise extension)"""
         # Create users with departments
         client.post('/scim/v2/Users', json={
@@ -434,7 +423,7 @@ class TestUsersList:
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
                 "department": "Engineering"
             }
-        })
+        }, headers=auth_headers)
         client.post('/scim/v2/Users', json={
             "schemas": [
                 "urn:ietf:params:scim:schemas:core:2.0:User",
@@ -445,16 +434,16 @@ class TestUsersList:
             "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
                 "department": "Sales"
             }
-        })
+        }, headers=auth_headers)
         
         # Filter by department
-        response = client.get('/scim/v2/Users?filter=department eq "Engineering"')
+        response = client.get('/scim/v2/Users?filter=department eq "Engineering"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
         assert data['Resources'][0]['userName'] == "eng1@example.com"
     
-    def test_list_users_filter_with_pagination(self, client):
+    def test_list_users_filter_with_pagination(self, client, auth_headers):
         """Test combining filter with pagination"""
         # Create 10 active and 5 inactive users
         for i in range(10):
@@ -462,16 +451,16 @@ class TestUsersList:
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
                 "userName": f"active{i}@example.com",
                 "active": True
-            })
+            }, headers=auth_headers)
         for i in range(5):
             client.post('/scim/v2/Users', json={
                 "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
                 "userName": f"inactive{i}@example.com",
                 "active": False
-            })
+            }, headers=auth_headers)
         
         # Filter active users with pagination
-        response = client.get('/scim/v2/Users?filter=active eq true&startIndex=1&count=3')
+        response = client.get('/scim/v2/Users?filter=active eq true&startIndex=1&count=3', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 10
@@ -482,25 +471,25 @@ class TestUsersList:
         for user in data['Resources']:
             assert user['active'] is True
     
-    def test_list_users_filter_invalid_syntax(self, client):
+    def test_list_users_filter_invalid_syntax(self, client, auth_headers):
         """Test invalid filter syntax"""
-        response = client.get('/scim/v2/Users?filter=invalid filter syntax')
+        response = client.get('/scim/v2/Users?filter=invalid filter syntax', headers=auth_headers)
         
         assert response.status_code == 400
         data = response.get_json()
         assert data['scimType'] == 'invalidFilter'
     
-    def test_list_users_filter_case_insensitive(self, client):
+    def test_list_users_filter_case_insensitive(self, client, auth_headers):
         """Test that string filters are case-insensitive"""
         # Create user
         client.post('/scim/v2/Users', json={
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
             "userName": "John.Doe@Example.COM",
             "active": True
-        })
+        }, headers=auth_headers)
         
         # Filter with different case
-        response = client.get('/scim/v2/Users?filter=userName eq "john.doe@example.com"')
+        response = client.get('/scim/v2/Users?filter=userName eq "john.doe@example.com"', headers=auth_headers)
         data = response.get_json()
         
         assert data['totalResults'] == 1
@@ -510,7 +499,7 @@ class TestUsersList:
 class TestUsersPatch:
     """Test PATCH /scim/v2/Users/{id} - Update user"""
     
-    def test_patch_user_replace_active(self, client):
+    def test_patch_user_replace_active(self, client, auth_headers):
         """Test replacing active status"""
         # Create user
         user_data = {
@@ -518,7 +507,7 @@ class TestUsersPatch:
             "userName": "patch@example.com",
             "active": True
         }
-        create_response = client.post('/scim/v2/Users', json=user_data)
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
         # Patch user
@@ -533,15 +522,13 @@ class TestUsersPatch:
             ]
         }
         
-        response = client.patch(f'/scim/v2/Users/{user_id}',
-                               json=patch_data,
-                               content_type='application/json')
+        response = client.patch(f'/scim/v2/Users/{user_id}', json=patch_data, headers=auth_headers, content_type='application/json')
         
         assert response.status_code == 200
         data = response.get_json()
         assert data['active'] is False
     
-    def test_patch_user_replace_name(self, client):
+    def test_patch_user_replace_name(self, client, auth_headers):
         """Test replacing name"""
         # Create user
         user_data = {
@@ -552,7 +539,7 @@ class TestUsersPatch:
                 "familyName": "Name"
             }
         }
-        create_response = client.post('/scim/v2/Users', json=user_data)
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
         # Patch name
@@ -567,27 +554,27 @@ class TestUsersPatch:
             ]
         }
         
-        response = client.patch(f'/scim/v2/Users/{user_id}', json=patch_data)
+        response = client.patch(f'/scim/v2/Users/{user_id}', json=patch_data, headers=auth_headers)
         
         assert response.status_code == 200
         data = response.get_json()
         assert data['name']['givenName'] == "New"
     
-    def test_patch_user_not_found(self, client):
+    def test_patch_user_not_found(self, client, auth_headers):
         """Test patching non-existent user"""
         patch_data = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "Operations": [{"op": "replace", "path": "active", "value": False}]
         }
         
-        response = client.patch('/scim/v2/Users/non-existent', json=patch_data)
+        response = client.patch('/scim/v2/Users/non-existent', json=patch_data, headers=auth_headers)
         assert response.status_code == 404
 
 
 class TestUsersDelete:
     """Test DELETE /scim/v2/Users/{id} - Delete user"""
     
-    def test_delete_user_success(self, client):
+    def test_delete_user_success(self, client, auth_headers):
         """Test deleting existing user"""
         # Create user
         user_data = {
@@ -595,29 +582,29 @@ class TestUsersDelete:
             "userName": "delete@example.com",
             "active": True
         }
-        create_response = client.post('/scim/v2/Users', json=user_data)
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
         # Delete user
-        response = client.delete(f'/scim/v2/Users/{user_id}')
+        response = client.delete(f'/scim/v2/Users/{user_id}', headers=auth_headers)
         
         assert response.status_code == 204
         assert response.data == b''
         
         # Verify user is deleted
-        get_response = client.get(f'/scim/v2/Users/{user_id}')
+        get_response = client.get(f'/scim/v2/Users/{user_id}', headers=auth_headers)
         assert get_response.status_code == 404
     
-    def test_delete_user_not_found(self, client):
+    def test_delete_user_not_found(self, client, auth_headers):
         """Test deleting non-existent user"""
-        response = client.delete('/scim/v2/Users/non-existent')
+        response = client.delete('/scim/v2/Users/non-existent', headers=auth_headers)
         assert response.status_code == 404
 
 
 class TestUsersPutNotSupported:
     """Test PUT /scim/v2/Users/{id} - Should return 501"""
     
-    def test_put_user_not_supported(self, client):
+    def test_put_user_not_supported(self, client, auth_headers):
         """Test that PUT returns 501 Not Implemented"""
         # Create user first
         user_data = {
@@ -625,13 +612,11 @@ class TestUsersPutNotSupported:
             "userName": "put@example.com",
             "active": True
         }
-        create_response = client.post('/scim/v2/Users', json=user_data)
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
         # Try PUT
-        response = client.put(f'/scim/v2/Users/{user_id}',
-                             json=user_data,
-                             content_type='application/json')
+        response = client.put(f'/scim/v2/Users/{user_id}', json=user_data, headers=auth_headers, content_type='application/json')
         
         assert response.status_code == 501
         data = response.get_json()

@@ -68,6 +68,12 @@ class AuthConfig:
     def from_env(cls) -> 'AuthConfig':
         """Load configuration from environment variables"""
         
+        # Load JWT public key and convert escaped newlines to actual newlines
+        jwt_public_key = os.getenv('AUTH_JWT_PUBLIC_KEY')
+        if jwt_public_key:
+            # Replace literal \n with actual newlines for PEM format
+            jwt_public_key = jwt_public_key.replace('\\n', '\n')
+        
         # OAuth configuration - ENABLED BY DEFAULT for IAM integration
         oauth = OAuthConfig(
             enabled=os.getenv('AUTH_OAUTH_ENABLED', 'true').lower() == 'true',
@@ -76,7 +82,7 @@ class AuthConfig:
             jwt_audience=os.getenv('AUTH_JWT_AUDIENCE'),
             jwt_algorithm=os.getenv('AUTH_JWT_ALGORITHM', 'RS256'),
             jwt_public_key_url=os.getenv('AUTH_JWT_PUBLIC_KEY_URL'),
-            jwt_public_key=os.getenv('AUTH_JWT_PUBLIC_KEY'),
+            jwt_public_key=jwt_public_key,
             introspection_enabled=os.getenv('AUTH_INTROSPECTION_ENABLED', 'false').lower() == 'true',
             introspection_url=os.getenv('AUTH_INTROSPECTION_URL'),
             introspection_client_id=os.getenv('AUTH_INTROSPECTION_CLIENT_ID'),
@@ -126,7 +132,9 @@ ENDPOINT_SCOPES = {
     # SCIM Discovery endpoints (public, no auth required)
     'GET:/scim/v2/ServiceProviderConfig': [],
     'GET:/scim/v2/Schemas': [],
+    'GET:/scim/v2/Schemas/*': [],  # Individual schemas
     'GET:/scim/v2/ResourceTypes': [],
+    'GET:/scim/v2/ResourceTypes/*': [],  # Individual resource types
     
     # API Documentation endpoints (public)
     'GET:/swagger.yaml': [],

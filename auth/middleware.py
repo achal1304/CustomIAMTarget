@@ -126,8 +126,9 @@ class AuthMiddleware:
         method = request.method
         path = request.path
         
-        # Skip authentication for Swagger UI and documentation routes
-        if path.startswith('/api/docs'):
+        # Skip authentication for documentation and public routes
+        public_prefixes = ['/api/docs', '/swagger.yaml', '/postman_collection.json']
+        if path == '/' or any(path.startswith(prefix) for prefix in public_prefixes):
             return None
         
         # Check if endpoint requires authentication

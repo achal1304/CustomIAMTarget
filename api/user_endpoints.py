@@ -165,16 +165,18 @@ class UserEndpoints:
     - DELETE /Users/{id} - Delete user
     """
     
-    def __init__(self, user_repository, group_repository):
+    def __init__(self, user_repository, group_repository, supporting_data_repository=None):
         """
         Initialize endpoints with repositories
         
         Args:
             user_repository: Repository for user persistence
             group_repository: Repository for group persistence
+            supporting_data_repository: Repository for supporting data (roles, departments)
         """
         self.user_repo = user_repository
         self.group_repo = group_repository
+        self.supporting_data_repo = supporting_data_repository
     
     def create_user(self, request_body: Dict[str, Any], base_url: str) -> tuple[Dict[str, Any], int]:
         """
@@ -195,7 +197,7 @@ class UserEndpoints:
                 raise SCIMError(400, "invalidValue", "Missing required schema")
             
             # Create user from request
-            user = User.from_dict(request_body, self.user_repo)
+            user = User.from_dict(request_body, self.user_repo, self.supporting_data_repo)
             
             # Check userName uniqueness
             if self.user_repo.get_by_username(user.user_name):
