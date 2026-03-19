@@ -49,12 +49,13 @@ class SupportingDataEndpoints:
         Returns:
             Tuple of (response_body, status_code)
         
-        Response Format:
+        Response Format (SCIM-like):
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
             "totalResults": 7,
             "startIndex": 1,
             "itemsPerPage": 7,
-            "roles": [
+            "Resources": [
                 {
                     "id": "role-admin",
                     "name": "Administrator",
@@ -81,12 +82,13 @@ class SupportingDataEndpoints:
             # Get page of results
             page_roles = all_roles[start_idx:end_idx]
             
-            # Build response
+            # Build response (SCIM-like format)
             response = {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                 "totalResults": total_results,
                 "startIndex": start_index,
                 "itemsPerPage": len(page_roles),
-                "roles": [role.to_dict() for role in page_roles]
+                "Resources": [role.to_dict() for role in page_roles]
             }
             
             return response, 200
@@ -109,12 +111,13 @@ class SupportingDataEndpoints:
         Returns:
             Tuple of (response_body, status_code)
         
-        Response Format:
+        Response Format (SCIM-like):
         {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
             "totalResults": 10,
             "startIndex": 1,
             "itemsPerPage": 10,
-            "departments": [
+            "Resources": [
                 {
                     "id": "dept-eng",
                     "name": "Engineering"
@@ -140,12 +143,13 @@ class SupportingDataEndpoints:
             # Get page of results
             page_departments = all_departments[start_idx:end_idx]
             
-            # Build response
+            # Build response (SCIM-like format)
             response = {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                 "totalResults": total_results,
                 "startIndex": start_index,
                 "itemsPerPage": len(page_departments),
-                "departments": [dept.to_dict() for dept in page_departments]
+                "Resources": [dept.to_dict() for dept in page_departments]
             }
             
             return response, 200

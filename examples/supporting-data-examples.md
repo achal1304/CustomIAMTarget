@@ -26,13 +26,14 @@ Host: example.com
 Authorization: Bearer <token-with-supportingdata.read>
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - SCIM-like format:**
 ```json
 {
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "totalResults": 7,
   "startIndex": 1,
   "itemsPerPage": 7,
-  "roles": [
+  "Resources": [
     {
       "id": "role-admin",
       "name": "Administrator",
@@ -83,13 +84,14 @@ Host: example.com
 Authorization: Bearer <token>
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - SCIM-like format:**
 ```json
 {
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "totalResults": 7,
   "startIndex": 1,
   "itemsPerPage": 3,
-  "roles": [
+  "Resources": [
     {
       "id": "role-admin",
       "name": "Administrator",
@@ -128,13 +130,14 @@ Host: example.com
 Authorization: Bearer <token-with-supportingdata.read>
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - SCIM-like format:**
 ```json
 {
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "totalResults": 10,
   "startIndex": 1,
   "itemsPerPage": 10,
-  "departments": [
+  "Resources": [
     {
       "id": "dept-eng",
       "name": "Engineering"
@@ -188,13 +191,14 @@ Authorization: Bearer <token-with-supportingdata.read>
 GET /api/supporting-data/departments?startIndex=1&count=5 HTTP/1.1
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - SCIM-like format:**
 ```json
 {
+  "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "totalResults": 10,
   "startIndex": 1,
   "itemsPerPage": 5,
-  "departments": [
+  "Resources": [
     {"id": "dept-eng", "name": "Engineering"},
     {"id": "dept-product", "name": "Product Management"},
     {"id": "dept-sales", "name": "Sales"},

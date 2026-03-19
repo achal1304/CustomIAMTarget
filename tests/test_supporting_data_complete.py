@@ -22,15 +22,17 @@ class TestRolesAPI:
         assert response.status_code == 200
         data = response.get_json()
         
-        # Verify pagination structure
+        # Verify SCIM-like structure
+        assert 'schemas' in data
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert 'totalResults' in data
         assert 'startIndex' in data
         assert 'itemsPerPage' in data
-        assert 'roles' in data
+        assert 'Resources' in data
         
         # Verify we have predefined roles
         assert data['totalResults'] == 7
-        assert len(data['roles']) == 7
+        assert len(data['Resources']) == 7
     
     def test_list_roles_pagination(self, client, auth_headers):
         """Test roles pagination"""
@@ -38,15 +40,17 @@ class TestRolesAPI:
         response = client.get('/api/supporting-data/roles?startIndex=1&count=3', headers=auth_headers)
         data = response.get_json()
         
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data['totalResults'] == 7
         assert data['startIndex'] == 1
         assert data['itemsPerPage'] == 3
-        assert len(data['roles']) == 3
+        assert len(data['Resources']) == 3
         
         # Get second page
         response2 = client.get('/api/supporting-data/roles?startIndex=4&count=3', headers=auth_headers)
         data2 = response2.get_json()
         
+        assert data2['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data2['startIndex'] == 4
         assert data2['itemsPerPage'] == 3
     
@@ -55,13 +59,17 @@ class TestRolesAPI:
         response = client.get('/api/supporting-data/roles', headers=auth_headers)
         data = response.get_json()
         
+        # Verify response has SCIM schema
+        assert 'schemas' in data
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+        
         # Check first role structure
-        role = data['roles'][0]
+        role = data['Resources'][0]
         assert 'id' in role
         assert 'name' in role
         assert 'description' in role
         
-        # Verify no SCIM fields
+        # Verify individual resources don't have SCIM meta fields
         assert 'schemas' not in role
         assert 'meta' not in role
         assert 'externalId' not in role
@@ -71,7 +79,7 @@ class TestRolesAPI:
         response = client.get('/api/supporting-data/roles', headers=auth_headers)
         data = response.get_json()
         
-        role_names = {role['name'] for role in data['roles']}
+        role_names = {role['name'] for role in data['Resources']}
         
         expected_roles = {
             'Administrator',
@@ -140,15 +148,17 @@ class TestDepartmentsAPI:
         assert response.status_code == 200
         data = response.get_json()
         
-        # Verify pagination structure
+        # Verify SCIM-like structure
+        assert 'schemas' in data
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert 'totalResults' in data
         assert 'startIndex' in data
         assert 'itemsPerPage' in data
-        assert 'departments' in data
+        assert 'Resources' in data
         
         # Verify we have predefined departments
         assert data['totalResults'] == 10
-        assert len(data['departments']) == 10
+        assert len(data['Resources']) == 10
     
     def test_list_departments_pagination(self, client, auth_headers):
         """Test departments pagination"""
@@ -156,15 +166,17 @@ class TestDepartmentsAPI:
         response = client.get('/api/supporting-data/departments?startIndex=1&count=5', headers=auth_headers)
         data = response.get_json()
         
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data['totalResults'] == 10
         assert data['startIndex'] == 1
         assert data['itemsPerPage'] == 5
-        assert len(data['departments']) == 5
+        assert len(data['Resources']) == 5
         
         # Get second page
         response2 = client.get('/api/supporting-data/departments?startIndex=6&count=5', headers=auth_headers)
         data2 = response2.get_json()
         
+        assert data2['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data2['startIndex'] == 6
         assert data2['itemsPerPage'] == 5
     
@@ -173,12 +185,16 @@ class TestDepartmentsAPI:
         response = client.get('/api/supporting-data/departments', headers=auth_headers)
         data = response.get_json()
         
+        # Verify response has SCIM schema
+        assert 'schemas' in data
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+        
         # Check first department structure
-        dept = data['departments'][0]
+        dept = data['Resources'][0]
         assert 'id' in dept
         assert 'name' in dept
         
-        # Verify no SCIM fields
+        # Verify individual resources don't have SCIM meta fields
         assert 'schemas' not in dept
         assert 'meta' not in dept
         assert 'externalId' not in dept
@@ -188,7 +204,7 @@ class TestDepartmentsAPI:
         response = client.get('/api/supporting-data/departments', headers=auth_headers)
         data = response.get_json()
         
-        dept_names = {dept['name'] for dept in data['departments']}
+        dept_names = {dept['name'] for dept in data['Resources']}
         
         expected_departments = {
             'Engineering',
@@ -280,20 +296,24 @@ class TestSupportingDataIsolation:
         assert 'data' not in data
     
     def test_scim_not_in_supporting_data(self, client, auth_headers):
-        """Test that SCIM fields don't appear in supporting data"""
-        # Check roles
+        """Test that supporting data now uses SCIM-like format"""
+        # Check roles - should now have SCIM format
         roles_response = client.get('/api/supporting-data/roles', headers=auth_headers)
         roles_data = roles_response.get_json()
         
-        assert 'schemas' not in roles_data
-        assert 'Resources' not in roles_data
+        # Now uses SCIM ListResponse format
+        assert 'schemas' in roles_data
+        assert roles_data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+        assert 'Resources' in roles_data
         
-        # Check departments
+        # Check departments - should now have SCIM format
         depts_response = client.get('/api/supporting-data/departments', headers=auth_headers)
         depts_data = depts_response.get_json()
         
-        assert 'schemas' not in depts_data
-        assert 'Resources' not in depts_data
+        # Now uses SCIM ListResponse format
+        assert 'schemas' in depts_data
+        assert depts_data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
+        assert 'Resources' in depts_data
 
 
 class TestSupportingDataEdgeCases:
@@ -317,8 +337,9 @@ class TestSupportingDataEdgeCases:
         data = response.get_json()
         
         # Should return all available items
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data['itemsPerPage'] == 7
-        assert len(data['roles']) == 7
+        assert len(data['Resources']) == 7
     
     def test_pagination_beyond_results(self, client, auth_headers):
         """Test pagination starting beyond available results"""
@@ -327,9 +348,10 @@ class TestSupportingDataEdgeCases:
         assert response.status_code == 200
         data = response.get_json()
         
+        assert data['schemas'] == ["urn:ietf:params:scim:api:messages:2.0:ListResponse"]
         assert data['totalResults'] == 7
         assert data['itemsPerPage'] == 0
-        assert len(data['roles']) == 0
+        assert len(data['Resources']) == 0
     
     def test_content_type_json(self, client, auth_headers):
         """Test that responses have correct content type"""
