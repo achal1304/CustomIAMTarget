@@ -1,0 +1,52 @@
+# Render Blueprint for SCIM 2.0 Service Provider
+# This file configures automatic deployment on Render
+
+services:
+  - type: web
+    name: scim-service-provider
+    env: python
+    region: oregon  # Change to your preferred region
+    plan: free  # Change to 'starter' or higher for production
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: BASE_URL
+        sync: false  # Set this in Render dashboard to your actual URL
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        fromService:
+          type: web
+          name: scim-service-provider
+          property: port
+      - key: DEBUG
+        value: False
+      - key: CORS_ORIGINS
+        value: "*"  # Change to specific origins in production
+      - key: AUTH_OAUTH_ENABLED
+        value: true
+      - key: AUTH_JWT_ENABLED
+        value: true
+      - key: AUTH_JWT_ISSUER
+        value: https://test-idp.example.com
+      - key: AUTH_JWT_AUDIENCE
+        value: scim-service-provider
+      - key: AUTH_JWT_ALGORITHM
+        value: RS256
+      - key: AUTH_JWT_PUBLIC_KEY
+        sync: false  # Set this in Render dashboard
+      - key: AUTH_BASIC_ENABLED
+        value: true
+      - key: AUTH_BASIC_USERS
+        sync: false  # Set this in Render dashboard
+      - key: AUTH_MTLS_ENABLED
+        value: false
+      - key: AUTH_MTLS_REQUIRE_CERT
+        value: false
+      - key: AUTH_ENFORCE_AUTHZ
+        value: true
+    healthCheckPath: /
+
+# Made with Bob

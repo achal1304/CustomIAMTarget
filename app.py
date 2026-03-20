@@ -4,6 +4,7 @@ Wires all existing endpoint classes into a runnable Flask application
 """
 
 from flask import Flask, request, jsonify, make_response, g, send_from_directory
+from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Dict, Any, Optional, List
 import os
@@ -102,6 +103,17 @@ class GroupRepository:
 
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
+
+# Configure CORS
+CORS(app, resources={
+    r"/*": {
+        "origins": os.getenv('CORS_ORIGINS', '*').split(','),
+        "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Location"],
+        "supports_credentials": True
+    }
+})
 
 # Get base URL from environment or use default
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')

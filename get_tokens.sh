@@ -1,20 +1,30 @@
 #!/bin/bash
 # Quick script to get authentication tokens for testing
-# Usage: ./get_tokens.sh [token_type] [base_url]
+# Usage: ./get_tokens.sh [base_url] [token_type]
 # Examples:
-#   ./get_tokens.sh                                    # Show all tokens (localhost)
-#   ./get_tokens.sh full_access                        # Get specific token (localhost)
-#   ./get_tokens.sh full_access https://myapp.onrender.com  # Get token from remote server
+#   ./get_tokens.sh                                           # Show all tokens (localhost)
+#   ./get_tokens.sh https://myapp.onrender.com                # Show all tokens (remote)
+#   ./get_tokens.sh https://myapp.onrender.com full_access    # Get specific token (remote)
+#   ./get_tokens.sh localhost full_access                     # Get specific token (localhost)
 
 set -e
 
-# Accept URL as second parameter, or use BASE_URL env var, or default to localhost
-if [ -n "$2" ]; then
-    BASE_URL="$2"
+# Parse arguments - first arg is URL if it contains http/https or is "localhost"
+if [[ "$1" =~ ^https?:// ]] || [[ "$1" == "localhost" ]]; then
+    # First arg is URL
+    if [ "$1" == "localhost" ]; then
+        BASE_URL="http://localhost:5000"
+    else
+        BASE_URL="$1"
+    fi
+    TOKEN_TYPE="${2:-}"
 elif [ -n "$BASE_URL" ]; then
-    BASE_URL="$BASE_URL"
+    # Use environment variable
+    TOKEN_TYPE="${1:-}"
 else
+    # Default to localhost, first arg is token type
     BASE_URL="http://localhost:5000"
+    TOKEN_TYPE="${1:-}"
 fi
 
 TOKEN_ENDPOINT="$BASE_URL/api/dev/tokens"
@@ -30,11 +40,17 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║         SCIM Token Generator - Quick Access                  ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
+echo -e "${BLUE}Server: $BASE_URL${NC}"
+echo ""
 
 # Check if server is running
 if ! curl -s -f "$BASE_URL" > /dev/null 2>&1; then
     echo -e "${RED}❌ Error: Server is not running at $BASE_URL${NC}"
-    echo -e "${YELLOW}   Start the server first: python3 app.py${NC}"
+    if [[ "$BASE_URL" == *"localhost"* ]]; then
+        echo -e "${YELLOW}   Start the server first: python3 app.py${NC}"
+    else
+        echo -e "${YELLOW}   Check if the server is deployed and accessible${NC}"
+    fi
     exit 1
 fi
 
