@@ -203,10 +203,6 @@ class UserEndpoints:
             if self.user_repo.get_by_username(user.user_name):
                 raise SCIMError(409, "uniqueness", f"userName '{user.user_name}' already exists")
             
-            # Check externalId uniqueness if provided
-            if user.external_id and self.user_repo.get_by_external_id(user.external_id):
-                raise SCIMError(409, "uniqueness", f"externalId '{user.external_id}' already exists")
-            
             # Save user
             self.user_repo.save(user)
             

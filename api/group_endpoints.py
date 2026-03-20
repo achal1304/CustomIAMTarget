@@ -78,10 +78,6 @@ class GroupEndpoints:
             if existing:
                 raise SCIMError(409, "uniqueness", f"Group with displayName '{group.display_name}' already exists")
             
-            # Check externalId uniqueness if provided
-            if group.external_id and self.group_repo.get_by_external_id(group.external_id):
-                raise SCIMError(409, "uniqueness", f"externalId '{group.external_id}' already exists")
-            
             # Save group
             self.group_repo.save(group)
             

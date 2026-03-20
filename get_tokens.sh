@@ -71,7 +71,8 @@ if ! command -v jq &> /dev/null; then
     exit 0
 fi
 
-TOKEN_TYPE="${1:-}"
+# TOKEN_TYPE was already set during argument parsing above (line 20 or 23 or 27)
+# Don't override it here
 
 if [ -z "$TOKEN_TYPE" ]; then
     # Show all tokens
