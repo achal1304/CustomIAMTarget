@@ -39,8 +39,8 @@ def seed_users(user_repo, supporting_data_repo) -> List[User]:
     ]
     
     departments = [
-        "Engineering", "Sales", "Marketing", "Human Resources", "Finance",
-        "Operations", "Customer Support", "Product Management", "Legal", "IT"
+        "Engineering", "Product Management", "Sales", "Marketing", "Human Resources",
+        "Finance", "Legal", "Operations", "Customer Support", "Executive"
     ]
     
     users = []
@@ -98,11 +98,13 @@ def seed_users(user_repo, supporting_data_repo) -> List[User]:
 def seed_groups(group_repo, user_repo, users: List[User]) -> List[Group]:
     """Create 20 groups with varied membership"""
     
+    # Mix of role-based groups (matching supporting data) and custom groups
     group_names = [
+        "Administrator", "Developer", "Analyst", "Manager", "Auditor",
+        "Support", "Read-Only User",  # These match predefined roles
         "Engineering Team", "Sales Team", "Marketing Team", "HR Team", "Finance Team",
-        "Operations Team", "Support Team", "Product Team", "Legal Team", "IT Team",
-        "Developers", "Managers", "Executives", "Analysts", "Designers",
-        "Consultants", "Administrators", "Coordinators", "Specialists", "Directors"
+        "Operations Team", "Product Team", "Legal Team", "Executive Team",
+        "Designers", "Consultants", "Coordinators", "Specialists", "Directors"
     ]
     
     groups = []
