@@ -3,7 +3,7 @@ Seed Data Module
 Pre-populates the SCIM system with 100 users, 20 groups, and group memberships
 """
 
-from models.user_model import User, Name, Email
+from models.user_model import User, Name, Email, GroupMembership
 from models.group_model import Group, Member
 from datetime import datetime
 from typing import List
@@ -153,11 +153,13 @@ def seed_groups(group_repo, user_repo, users: List[User]) -> List[Group]:
             if user:
                 if not user.groups:
                     user.groups = []
-                user.groups.append({
-                    "value": group.id,
-                    "display": group.display_name,
-                    "$ref": f"/Groups/{group.id}"
-                })
+                group_membership = GroupMembership(
+                    value=group.id,
+                    display=group.display_name,
+                    ref=f"/Groups/{group.id}",
+                    type="direct"
+                )
+                user.groups.append(group_membership)
     
     print(f"✅ Seeded {len(groups)} groups")
     print(f"   - Group 1 ('{groups[0].display_name}'): {len(groups[0].members)} members")
