@@ -8,12 +8,14 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PORT=10000
 
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -33,12 +35,14 @@ RUN useradd -m -u 1000 appuser && \
 # Switch to non-root user
 USER appuser
 
-# Expose port (Fly.io will set PORT env var)
-EXPOSE 8080
+# Expose port (Render/Fly.io will set PORT env var)
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8080/', timeout=5)" || exit 1
+    CMD curl -f http://localhost:${PORT}/ || exit 1
 
 # Run with gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+# Single worker with preload to avoid key generation race condition
+# More threads to handle concurrent requests
+CMD gunicorn --bind 0.0.0.0:${PORT} --workers 1 --threads 4 --timeout 120 --preload --access-logfile - --error-logfile - app:app
