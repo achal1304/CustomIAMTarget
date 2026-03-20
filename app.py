@@ -31,6 +31,9 @@ from models.supporting_data_model import SupportingDataRepository
 from auth.middleware import create_auth_middleware
 from auth.config import AuthConfig
 
+# Import seed data
+from seed_data import seed_all_data
+
 
 # ==================== IN-MEMORY REPOSITORIES ====================
 
@@ -135,6 +138,9 @@ token_endpoints = TokenEndpoints()
 # Initialize authentication & authorization middleware
 auth_config = AuthConfig.from_env()
 auth_middleware = create_auth_middleware(auth_config)
+
+# Seed data on startup (100 users, 20 groups with memberships)
+seed_all_data(user_repo, group_repo, supporting_data_repo)
 
 # ==================== SWAGGER UI SETUP ====================
 
