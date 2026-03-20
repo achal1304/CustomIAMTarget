@@ -3,11 +3,12 @@ SCIM 2.0 Service Provider - Main Application
 Wires all existing endpoint classes into a runnable Flask application
 """
 
-from flask import Flask, request, jsonify, make_response, g, send_from_directory
+from flask import Flask, request, jsonify, make_response, g, send_from_directory, Response
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from typing import Dict, Any, Optional, List
 import os
+import yaml
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -155,11 +156,29 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
-# Serve swagger.yaml file
+# Serve swagger.yaml file with dynamic server URL
 @app.route('/swagger.yaml')
 def swagger_spec():
-    """Serve the Swagger/OpenAPI specification file"""
-    return send_from_directory('.', 'swagger.yaml')
+    """Serve the Swagger/OpenAPI specification file with dynamic server URL"""
+    try:
+        # Read the swagger.yaml file
+        with open('swagger.yaml', 'r') as f:
+            swagger_content = yaml.safe_load(f)
+        
+        # Update the servers section with the current BASE_URL
+        swagger_content['servers'] = [
+            {
+                'url': BASE_URL,
+                'description': 'Current server'
+            }
+        ]
+        
+        # Convert back to YAML and return
+        yaml_output = yaml.dump(swagger_content, default_flow_style=False, sort_keys=False)
+        return Response(yaml_output, mimetype='text/yaml')
+    except Exception as e:
+        # Fallback to static file if there's an error
+        return send_from_directory('.', 'swagger.yaml')
 
 # Serve Postman collection
 @app.route('/postman_collection.json')
