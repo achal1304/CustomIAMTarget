@@ -1,11 +1,22 @@
 #!/bin/bash
 # Quick script to get authentication tokens for testing
-# Usage: ./get_tokens.sh [token_type]
-# If no token_type specified, shows all available tokens
+# Usage: ./get_tokens.sh [token_type] [base_url]
+# Examples:
+#   ./get_tokens.sh                                    # Show all tokens (localhost)
+#   ./get_tokens.sh full_access                        # Get specific token (localhost)
+#   ./get_tokens.sh full_access https://myapp.onrender.com  # Get token from remote server
 
 set -e
 
-BASE_URL="${BASE_URL:-http://localhost:5000}"
+# Accept URL as second parameter, or use BASE_URL env var, or default to localhost
+if [ -n "$2" ]; then
+    BASE_URL="$2"
+elif [ -n "$BASE_URL" ]; then
+    BASE_URL="$BASE_URL"
+else
+    BASE_URL="http://localhost:5000"
+fi
+
 TOKEN_ENDPOINT="$BASE_URL/api/dev/tokens"
 
 # Colors for output

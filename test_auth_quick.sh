@@ -1,13 +1,27 @@
 #!/bin/bash
 # Quick Authentication Testing Script
 # Tests all authentication scenarios
+# Usage: ./test_auth_quick.sh [base_url]
+# Examples:
+#   ./test_auth_quick.sh                              # Test localhost
+#   ./test_auth_quick.sh https://myapp.onrender.com   # Test remote server
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║     Quick Authentication Test                                 ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
-BASE_URL="http://localhost:5000"
+# Accept URL as parameter, or use BASE_URL env var, or default to localhost
+if [ -n "$1" ]; then
+    BASE_URL="$1"
+elif [ -n "$BASE_URL" ]; then
+    BASE_URL="$BASE_URL"
+else
+    BASE_URL="http://localhost:5000"
+fi
+
+echo "Testing server: $BASE_URL"
+echo ""
 
 # Colors for output
 GREEN='\033[0;32m'

@@ -1,12 +1,25 @@
 #!/bin/bash
 # Authentication Examples for SCIM 2.0 Service Provider
 # Demonstrates various authentication mechanisms
+# Usage: ./authentication-examples.sh [base_url]
+# Examples:
+#   ./authentication-examples.sh                              # Use localhost
+#   ./authentication-examples.sh https://myapp.onrender.com   # Use remote server
 
-BASE_URL="http://localhost:5000"
+# Accept URL as parameter, or use BASE_URL env var, or default to localhost
+if [ -n "$1" ]; then
+    BASE_URL="$1"
+elif [ -n "$BASE_URL" ]; then
+    BASE_URL="$BASE_URL"
+else
+    BASE_URL="http://localhost:5000"
+fi
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║     SCIM 2.0 Authentication Examples                         ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Testing server: $BASE_URL"
 echo ""
 
 # ==================== PUBLIC ENDPOINTS (NO AUTH) ====================
