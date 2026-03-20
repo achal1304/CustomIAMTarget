@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+.hypothesis/
+tests/.coverage
+tests/htmlcov/
+tests/.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+auth.config
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional - include if needed)
+# *.md
+
+# Test files (optional - exclude to reduce image size)
+tests/
+test_*.py
+*_test.py
+
+# Keys and certificates (use Fly secrets instead)
+*.pem
+*.key
+*.crt
+.test_keys.pem
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Scripts (optional - exclude if not needed in production)
+*.sh
+get_tokens.sh
+setup_auth.sh
+start_server*.sh
+test_*.sh
+
+# Example files
+examples/
+postman_collection.json
