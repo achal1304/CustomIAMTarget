@@ -19,79 +19,52 @@ from cryptography.hazmat.backends import default_backend
 class TokenEndpoints:
     """Token generation endpoints for testing"""
     
-    # Class-level key storage to persist across instances
-    _private_key = None
-    _public_key = None
-    _keys_file = '.test_keys.pem'
+    # HARDCODED TEST KEYS - DO NOT CHANGE
+    # These keys are fixed for consistent testing across all environments
+    _HARDCODED_PRIVATE_KEY = b"""-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDAclQlu58shKzQ
+WMnH+8ELZp8NXOvuKBUHCnBueW+PHWLeWY+Gfwn3So32ZvZ8JJR+x3Ao4hXc4CkS
+GcuxBUUgmeWucOZ6GBmrHAqDDatoDZMab3j5rCDlIS6ox5c2IDzkSu6Edew963Lh
+/UQb4CdMDJUCVCXAd1fm/848OksIqTGAkT4KSC4GdPYYz70rXR2qVXF0YrL2rxaC
+U4+U3F0VA+jSCjoAmnMLK84BF+eVIUv71T8rPu7EQ/NXwvmugwZAWOmXmdn1GnVl
+XeZ5rDGPZp25ktp6vNDvrY34WnP5UaaRwqQx12YMKzA/6FgY5wiwsUo4T9xMhdWI
+BTz3XOApAgMBAAECggEABESU0qhm9uBeCm8ppxkmy8IDyCgAeyM27NV3BFrbleza
+KYxgFzoVMRTdcfKQcqoyA99tle6GUG7FN7z24Y8NxykP6QQ2dvc2sdmDmdVGsPOk
+yJrib9u4zV66GkKg5cb7FWSxsPeCMiZZAXjcgZIWn68OFUON+ccmcyhG/TAdbrdI
+lp6qIIgYKEE52C8BnGQXQ/ujyYXWDNmeDloFJmMRmh/XzwAvYuMKdhefNveGNndR
+B5q2P5Q2N+gXqpZBqH0quGH8Ad4eQCONwMnQRa1/CUsuA2xlfrEEtCQ8gH3bYIiN
+pWPo5HQxT+YSku6NS9uKGxMWti7g7VxreMq50EplHQKBgQD/b3q/pMADrWZ28w0u
+979DCgUKTis3rqA0bJqXFQ1VA5kMzWLz5W/oVPYYcYwDXclXsjMQtaHu9xy/SAJm
+Xm7/KwbtpkxwDVH86lcZk1Hf3Lepns6iZg/EYuQdawnyZ/Q2WKr2FaPfmoNIIOfm
+GQUcfCVZs84ZCehezsnCPZO21QKBgQDA3zYYnR9rPJ3Pd5KJJCAFU4zBa4i9ucET
+nTPIHz9OUAOredvbGuZu29Rl+a94AuEIiuiHrh27bMBqLWLbXkI6CWjfNt50xBOV
+JTE1ldNj3MV5a/79XiMnB8UsJDcQFOwIj9R6bGMfkGW6abDdXuwo5MQ5NtRSck07
+zEOqdLQWBQKBgE2ayflFjYzQdsv2xe+aF4K/nY5m91xgco3a3RC/taA5iptIHyMo
+dtpoTahZfwdazBwXqMoP1NXsP9ChiREe6awen2k+WATHFzy22aWMi5huz2H6PJ88
+UNgCj3mclpYOHTURtUc0hegeYnpcfPf8bAAee56IMTqMNwvu2X9pA+LNAoGAUvAp
+fRAj8KNSYWLT2rF0K5YwEwTA+oUkZ+DT4Zy+RljWGyj9yAybRtS1U1y5fewPBPNm
+5uGS24P6gi4eMqMn63kcZdBcfO3MVfh2Xsqc6naHXJ16O03948zNlxvDqeC1V0Ey
+Z6qwPWSEulK0wZ0OBM/LKadQSlvopmxCNMyWnFkCgYEAxOSF8PBjWKNxpzmFBEWU
++sHfVSncA9J7If+jId3EhM0ByIuJfF77NOPAVpjIjFKUsbLAxKJlpuP2TUfxXJ5j
+chW8kYuPTcv/WUgOxOaFg2BHUVzgbu/BSt7IJf2kuHUvrikulPN6Mlw3+cT8O8PR
+VYE1H3wWx/SM8WGYqB6KenE=
+-----END PRIVATE KEY-----"""
+    
+    _HARDCODED_PUBLIC_KEY = b"""-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwHJUJbufLISs0FjJx/vB
+C2afDVzr7igVBwpwbnlvjx1i3lmPhn8J90qN9mb2fCSUfsdwKOIV3OApEhnLsQVF
+IJnlrnDmehgZqxwKgw2raA2TGm94+awg5SEuqMeXNiA85EruhHXsPety4f1EG+An
+TAyVAlQlwHdX5v/OPDpLCKkxgJE+CkguBnT2GM+9K10dqlVxdGKy9q8WglOPlNxd
+FQPo0go6AJpzCyvOARfnlSFL+9U/Kz7uxEPzV8L5roMGQFjpl5nZ9Rp1ZV3meawx
+j2aduZLaerzQ762N+Fpz+VGmkcKkMddmDCswP+hYGOcIsLFKOE/cTIXViAU891zg
+KQIDAQAB
+-----END PUBLIC KEY-----"""
     
     def __init__(self):
-        """Initialize with a persistent test RSA key pair"""
-        self.private_key, self.public_key = self._get_or_generate_keys()
-    
-    @classmethod
-    def _get_or_generate_keys(cls) -> Tuple[bytes, bytes]:
-        """Get existing keys or generate new ones (persisted to file)"""
-        # Return cached keys if available
-        if cls._private_key and cls._public_key:
-            return cls._private_key, cls._public_key
-        
-        # Try to load from file
-        if os.path.exists(cls._keys_file):
-            try:
-                with open(cls._keys_file, 'rb') as f:
-                    content = f.read()
-                    # Split by marker
-                    parts = content.split(b'-----END PRIVATE KEY-----')
-                    if len(parts) == 2:
-                        private_pem = parts[0] + b'-----END PRIVATE KEY-----'
-                        public_pem = parts[1].strip()
-                        cls._private_key = private_pem
-                        cls._public_key = public_pem
-                        print(f"✓ Loaded existing RSA keys from {cls._keys_file}")
-                        return cls._private_key, cls._public_key
-            except Exception as e:
-                print(f"⚠️  Failed to load keys from {cls._keys_file}: {e}")
-        
-        # Generate new keys
-        print(f"Generating new RSA key pair and saving to {cls._keys_file}...")
-        cls._private_key, cls._public_key = cls._generate_rsa_keys()
-        
-        # Save to file
-        try:
-            with open(cls._keys_file, 'wb') as f:
-                f.write(cls._private_key)
-                f.write(b'\n')
-                f.write(cls._public_key)
-            print(f"✓ Saved RSA keys to {cls._keys_file}")
-            print(f"⚠️  IMPORTANT: Update your .env file with this public key:")
-            print(f"   Run: curl http://localhost:5000/api/dev/tokens/public-key")
-        except Exception as e:
-            print(f"⚠️  Failed to save keys to {cls._keys_file}: {e}")
-        
-        return cls._private_key, cls._public_key
-    
-    @classmethod
-    def _generate_rsa_keys(cls) -> Tuple[bytes, bytes]:
-        """Generate RSA key pair for JWT signing"""
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
-        
-        private_pem = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        )
-        
-        public_key = private_key.public_key()
-        public_pem = public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        
-        return private_pem, public_pem
+        """Initialize with hardcoded test RSA key pair"""
+        self.private_key = self._HARDCODED_PRIVATE_KEY
+        self.public_key = self._HARDCODED_PUBLIC_KEY
+        print("✓ Using hardcoded test RSA keys for consistent token generation")
     
     def _create_jwt_token(self, scopes: List[str], subject: str = 'test-user',
                          expires_in_hours: int = 24) -> str:
