@@ -490,6 +490,40 @@ def get_public_key():
     return jsonify(response_body), status_code
 
 
+@app.route('/api/dev/auth-config', methods=['GET'])
+def get_auth_config():
+    """GET /api/dev/auth-config - Debug endpoint to check auth configuration"""
+    config_info = {
+        'oauth': {
+            'enabled': auth_config.oauth.enabled,
+            'jwt_enabled': auth_config.oauth.jwt_enabled,
+            'jwt_issuer': auth_config.oauth.jwt_issuer,
+            'jwt_audience': auth_config.oauth.jwt_audience,
+            'jwt_algorithm': auth_config.oauth.jwt_algorithm,
+            'jwt_public_key_configured': bool(auth_config.oauth.jwt_public_key),
+            'jwt_public_key_length': len(auth_config.oauth.jwt_public_key) if auth_config.oauth.jwt_public_key else 0,
+            'jwt_public_key_preview': auth_config.oauth.jwt_public_key[:100] + '...' if auth_config.oauth.jwt_public_key else None
+        },
+        'basic_auth': {
+            'enabled': auth_config.basic_auth.enabled,
+            'users_configured': len(auth_config.basic_auth.credentials)
+        },
+        'mtls': {
+            'enabled': auth_config.mtls.enabled
+        },
+        'authorization': {
+            'enforce_authorization': auth_config.enforce_authorization
+        },
+        'any_auth_enabled': auth_config.is_any_auth_enabled(),
+        'current_request': {
+            'authenticated': hasattr(g, 'auth_identity'),
+            'identity': getattr(g, 'auth_identity', None),
+            'scopes': getattr(g, 'auth_scopes', [])
+        }
+    }
+    return jsonify(config_info), 200
+
+
 # ==================== ROOT ENDPOINT ====================
 
 @app.route('/', methods=['GET'])
