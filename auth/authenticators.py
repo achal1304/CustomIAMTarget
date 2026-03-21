@@ -237,6 +237,8 @@ class BasicAuthAuthenticator:
         Returns:
             AuthenticationResult
         """
+        print(f"[DEBUG] BasicAuth: enabled={self.config.enabled}, credentials={list(self.config.credentials.keys())}")
+        
         if not self.config.enabled:
             return AuthenticationResult(authenticated=False, error="Basic Auth not enabled")
         
@@ -246,6 +248,8 @@ class BasicAuthAuthenticator:
             if header_name.lower() == 'authorization':
                 auth_header = request.headers[header_name]
                 break
+        
+        print(f"[DEBUG] BasicAuth: auth_header={auth_header[:50] if auth_header else None}")
         
         if not auth_header:
             return AuthenticationResult(authenticated=False, error="Missing Authorization header")
@@ -259,22 +263,32 @@ class BasicAuthAuthenticator:
             decoded_credentials = base64.b64decode(encoded_credentials).decode('utf-8')
             username, password = decoded_credentials.split(':', 1)
             
+            print(f"[DEBUG] BasicAuth: username={username}, password={'*' * len(password)}")
+            
             # Validate credentials
             if username in self.config.credentials:
                 stored_hash = self.config.credentials[username]
                 password_hash = hashlib.sha256(password.encode()).hexdigest()
                 
+                print(f"[DEBUG] BasicAuth: stored_hash={stored_hash[:20]}..., computed_hash={password_hash[:20]}...")
+                
                 if password_hash == stored_hash:
                     # Basic auth grants all scopes (simplified)
+                    print(f"[DEBUG] BasicAuth: SUCCESS for user {username}")
                     return AuthenticationResult(
                         authenticated=True,
                         identity=username,
                         scopes=['scim.read', 'scim.write', 'supportingdata.read']
                     )
+                else:
+                    print(f"[DEBUG] BasicAuth: FAILED - hash mismatch")
+            else:
+                print(f"[DEBUG] BasicAuth: FAILED - username not found")
             
             return AuthenticationResult(authenticated=False, error="Invalid credentials")
             
         except Exception as e:
+            print(f"[DEBUG] BasicAuth: EXCEPTION - {str(e)}")
             return AuthenticationResult(authenticated=False, error=f"Basic Auth error: {str(e)}")
 
 
