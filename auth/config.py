@@ -145,6 +145,7 @@ ENDPOINT_SCOPES = {
     'GET:/api/dev/tokens': [],
     'POST:/api/dev/tokens/generate': [],
     'GET:/api/dev/tokens/public-key': [],
+    'GET:/api/dev/auth-config': [],
     
     # SCIM User endpoints
     'GET:/scim/v2/Users': ['scim.read'],
