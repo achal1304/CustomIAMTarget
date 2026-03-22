@@ -33,6 +33,8 @@ class BasicAuthConfig:
     enabled: bool = False
     # Credentials stored as username:password_hash pairs
     credentials: Dict[str, str] = field(default_factory=dict)
+    # User-specific scopes (username -> list of scopes)
+    user_scopes: Dict[str, List[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -42,8 +44,12 @@ class MutualTLSConfig:
     # Certificate validation settings
     require_client_cert: bool = False
     trusted_ca_certs_path: Optional[str] = None
-    # Certificate-to-identity mapping
+    # Certificate-to-identity mapping (cert CN -> identity)
     cert_subject_mapping: Dict[str, str] = field(default_factory=dict)
+    # Identity-specific scopes (identity -> list of scopes)
+    cert_scopes: Dict[str, List[str]] = field(default_factory=dict)
+    # Default scopes for certificates not in cert_scopes mapping
+    default_scopes: List[str] = field(default_factory=lambda: ['scim.read'])
 
 
 @dataclass
@@ -92,14 +98,32 @@ class AuthConfig:
         # Basic Auth configuration - ENABLED BY DEFAULT for IAM integration
         basic_auth = BasicAuthConfig(
             enabled=os.getenv('AUTH_BASIC_ENABLED', 'true').lower() == 'true',
-            credentials=cls._load_basic_auth_credentials()
+            credentials=cls._load_basic_auth_credentials(),
+            user_scopes={
+                'admin': ['scim.read', 'scim.write', 'supportingdata.read'],
+                'readonly': ['scim.read', 'supportingdata.read'],
+                'testuser': ['scim.read', 'scim.write', 'supportingdata.read']
+            }
         )
         
-        # mTLS configuration - ENABLED BY DEFAULT for IAM integration
+        # mTLS configuration - DISABLED BY DEFAULT (requires web server setup)
         mtls = MutualTLSConfig(
-            enabled=os.getenv('AUTH_MTLS_ENABLED', 'true').lower() == 'true',
+            enabled=os.getenv('AUTH_MTLS_ENABLED', 'false').lower() == 'true',
             require_client_cert=os.getenv('AUTH_MTLS_REQUIRE_CERT', 'false').lower() == 'true',
-            trusted_ca_certs_path=os.getenv('AUTH_MTLS_CA_CERTS_PATH')
+            trusted_ca_certs_path=os.getenv('AUTH_MTLS_CA_CERTS_PATH', 'certs/ca-cert.pem'),
+            # Hardcoded test certificate mappings (CN -> identity)
+            cert_subject_mapping={
+                'admin-client': 'admin-client',
+                'readonly-client': 'readonly-client',
+                'scim-client': 'scim-client'
+            },
+            # Hardcoded test certificate scopes (identity -> scopes)
+            cert_scopes={
+                'admin-client': ['scim.read', 'scim.write', 'supportingdata.read'],
+                'readonly-client': ['scim.read', 'supportingdata.read'],
+                'scim-client': ['scim.read', 'scim.write']
+            },
+            default_scopes=['scim.read']
         )
         
         return cls(

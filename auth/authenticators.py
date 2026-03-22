@@ -273,12 +273,13 @@ class BasicAuthAuthenticator:
                 print(f"[DEBUG] BasicAuth: stored_hash={stored_hash[:20]}..., computed_hash={password_hash[:20]}...")
                 
                 if password_hash == stored_hash:
-                    # Basic auth grants all scopes (simplified)
-                    print(f"[DEBUG] BasicAuth: SUCCESS for user {username}")
+                    # Get user-specific scopes
+                    user_scopes = self.config.user_scopes.get(username, ['scim.read'])
+                    print(f"[DEBUG] BasicAuth: SUCCESS for user {username}, scopes={user_scopes}")
                     return AuthenticationResult(
                         authenticated=True,
                         identity=username,
-                        scopes=['scim.read', 'scim.write', 'supportingdata.read']
+                        scopes=user_scopes
                     )
                 else:
                     print(f"[DEBUG] BasicAuth: FAILED - hash mismatch")
@@ -323,25 +324,28 @@ class MutualTLSAuthenticator:
         # Check if client certificate is present
         # Note: In production, this requires proper TLS configuration at the web server level
         # Flask's request.environ contains certificate info when configured
+        # Headers from nginx are converted: SSL-Client-Cert -> HTTP_SSL_CLIENT_CERT
         
-        client_cert = request.environ.get('SSL_CLIENT_CERT')
+        client_cert = request.headers.get('SSL-Client-Cert') or request.environ.get('SSL_CLIENT_CERT')
         if not client_cert and self.config.require_client_cert:
             return AuthenticationResult(authenticated=False, error="Client certificate required")
         
         if client_cert:
             # Extract certificate subject
             # In production, use proper certificate parsing
-            cert_subject = request.environ.get('SSL_CLIENT_S_DN', '')
+            cert_subject = request.headers.get('SSL-Client-S-DN') or request.environ.get('SSL_CLIENT_S_DN', '')
             
             # Map certificate to identity
             identity = self._map_cert_to_identity(cert_subject)
             
             if identity:
-                # mTLS grants all scopes (simplified)
+                # Get scopes for this identity (or use default scopes)
+                scopes = self.config.cert_scopes.get(identity, self.config.default_scopes)
+                
                 return AuthenticationResult(
                     authenticated=True,
                     identity=identity,
-                    scopes=['scim.read', 'scim.write', 'supportingdata.read']
+                    scopes=scopes
                 )
         
         return AuthenticationResult(authenticated=False, error="Certificate validation failed")

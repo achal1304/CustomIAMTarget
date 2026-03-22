@@ -1,0 +1,29 @@
+services:
+  # Regular mode - lightweight, fast build (for Render, etc.)
+  scim-regular:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:10000"
+    env_file:
+      - .env
+    environment:
+      - PORT=10000
+    profiles:
+      - regular
+
+  # mTLS mode - with nginx (heavier build, for local/VM deployment)
+  scim-mtls:
+    build:
+      context: .
+      dockerfile: Dockerfile.mtls
+    ports:
+      - "8080:8080"   # HTTP
+      - "8443:8443"   # HTTPS with mTLS
+    env_file:
+      - .env.mtls
+    profiles:
+      - mtls
+
+# Made with Bob

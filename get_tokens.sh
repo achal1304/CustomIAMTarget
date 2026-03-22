@@ -93,6 +93,16 @@ if [ -z "$TOKEN_TYPE" ]; then
     
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}MTLS CERTIFICATES${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    
+    echo "$RESPONSE" | jq -r '.tokens.mtls | to_entries[] | "\n\(.key | ascii_upcase):\n  Identity: \(.value.identity)\n  Certificate: \(.value.certificate)\n  Scopes: \(.value.scopes | join(", "))\n  Description: \(.value.description)"'
+    
+    echo ""
+    echo -e "${YELLOW}Note: Run ./tools/generate_mtls_certs.sh to generate certificates${NC}"
+    
+    echo ""
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo -e "${BLUE}QUICK USAGE${NC}"
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
     echo ""
@@ -101,14 +111,17 @@ if [ -z "$TOKEN_TYPE" ]; then
     echo "  ./get_tokens.sh read_only"
     echo "  ./get_tokens.sh admin"
     echo ""
-    echo -e "${GREEN}Use in curl:${NC}"
+    echo -e "${GREEN}Use JWT in curl:${NC}"
     echo "  TOKEN=\$(./get_tokens.sh full_access)"
     echo "  curl -H \"Authorization: Bearer \$TOKEN\" $BASE_URL/scim/v2/Users"
     echo ""
     echo -e "${GREEN}Use Basic Auth:${NC}"
     echo "  curl -u admin:admin123 $BASE_URL/scim/v2/Users"
     echo ""
-    echo -e "${YELLOW}See TOKEN_GENERATION_GUIDE.md for more examples${NC}"
+    echo -e "${GREEN}Use mTLS (requires nginx setup):${NC}"
+    echo "  curl --cert certs/client-admin.pem --cacert certs/ca-cert.pem https://localhost/scim/v2/Users"
+    echo ""
+    echo -e "${YELLOW}See TOKEN_GENERATION_GUIDE.md and MTLS_SETUP_GUIDE.md for more examples${NC}"
     
 else
     # Get specific token
@@ -130,6 +143,15 @@ else
             fi
             echo "$PASSWORD"
             ;;
+        admin_client|readonly_client|scim_client)
+            # For mTLS, return the certificate path
+            CERT_PATH=$(echo "$RESPONSE" | jq -r ".tokens.mtls.$TOKEN_TYPE.certificate")
+            if [ "$CERT_PATH" = "null" ]; then
+                echo -e "${RED}❌ Certificate '$TOKEN_TYPE' not found${NC}"
+                exit 1
+            fi
+            echo "$CERT_PATH"
+            ;;
         *)
             echo -e "${RED}❌ Unknown token type: $TOKEN_TYPE${NC}"
             echo ""
@@ -138,6 +160,9 @@ else
             echo ""
             echo -e "${YELLOW}Available Basic Auth users:${NC}"
             echo "  admin, testuser, readonly"
+            echo ""
+            echo -e "${YELLOW}Available mTLS certificates:${NC}"
+            echo "  admin_client, readonly_client, scim_client"
             exit 1
             ;;
     esac

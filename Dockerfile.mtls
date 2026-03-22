@@ -1,0 +1,102 @@
+# Heavy Dockerfile with nginx for mTLS Deployment
+# For regular deployment, use Dockerfile instead (much faster)
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=10000 \
+    AUTH_MTLS_ENABLED=true
+
+# Install system dependencies INCLUDING nginx and supervisor
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    nginx \
+    openssl \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0
+
+# Copy application code
+COPY . .
+
+# Use existing certificates (already generated locally)
+RUN if [ ! -f certs/ca-cert.pem ]; then \
+        echo "⚠️  Certificates not found! Run ./tools/generate_mtls_certs.sh first"; \
+        exit 1; \
+    fi
+
+# Create nginx configuration
+RUN cat > /etc/nginx/sites-available/scim-mtls.conf << 'EOF'
+upstream flask_backend {
+    server 127.0.0.1:5000;
+}
+
+server {
+    listen 8080;
+    location / {
+        proxy_pass http://flask_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+server {
+    listen 8443 ssl;
+    ssl_certificate /app/certs/server-cert.pem;
+    ssl_certificate_key /app/certs/server-key.pem;
+    ssl_client_certificate /app/certs/ca-cert.pem;
+    ssl_verify_client optional;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    location / {
+        proxy_pass http://flask_backend;
+        proxy_set_header SSL-Client-Cert $ssl_client_cert;
+        proxy_set_header SSL-Client-S-DN $ssl_client_s_dn;
+        proxy_set_header SSL-Client-Verify $ssl_client_verify;
+    }
+}
+EOF
+
+RUN ln -sf /etc/nginx/sites-available/scim-mtls.conf /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# Create supervisor config
+RUN cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
+[supervisord]
+nodaemon=true
+logfile=/dev/stdout
+logfile_maxbytes=0
+
+[program:flask]
+command=gunicorn --bind 127.0.0.1:5000 --workers 1 --threads 4 --timeout 120 --preload app:app
+directory=/app
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:nginx]
+command=/usr/sbin/nginx
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+EXPOSE 8080 8443
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

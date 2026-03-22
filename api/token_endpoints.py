@@ -151,12 +151,36 @@ KQIDAQAB
                     'authorization_header': self._generate_basic_auth_header('readonly', 'readonly123'),
                     'description': 'Read-only user'
                 }
+            },
+            'mtls': {
+                'admin_client': {
+                    'certificate': 'certs/client-admin.pem',
+                    'identity': 'admin-client',
+                    'scopes': ['scim.read', 'scim.write', 'supportingdata.read'],
+                    'description': 'Admin client certificate with full access',
+                    'curl_example': 'curl --cert certs/client-admin.pem --cacert certs/ca-cert.pem https://localhost:5000/scim/v2/Users'
+                },
+                'readonly_client': {
+                    'certificate': 'certs/client-readonly.pem',
+                    'identity': 'readonly-client',
+                    'scopes': ['scim.read', 'supportingdata.read'],
+                    'description': 'Read-only client certificate',
+                    'curl_example': 'curl --cert certs/client-readonly.pem --cacert certs/ca-cert.pem https://localhost:5000/scim/v2/Users'
+                },
+                'scim_client': {
+                    'certificate': 'certs/client-scim.pem',
+                    'identity': 'scim-client',
+                    'scopes': ['scim.read', 'scim.write'],
+                    'description': 'SCIM-only client certificate (no supporting data access)',
+                    'curl_example': 'curl --cert certs/client-scim.pem --cacert certs/ca-cert.pem https://localhost:5000/scim/v2/Users'
+                },
+                'note': 'Run ./tools/generate_mtls_certs.sh to generate certificates if not already present'
             }
         }
         
         # Add configuration instructions
         response = {
-            'warning': '⚠️ These are TEST tokens only! Do NOT use in production!',
+            'warning': '⚠️ These are TEST tokens/certificates only! Do NOT use in production!',
             'tokens': tokens,
             'keys': {
                 'public_key': self.public_key.decode(),
@@ -183,19 +207,31 @@ KQIDAQAB
                     },
                     'note': 'Use password_hash from tokens.basic_auth above'
                 },
+                'mtls': {
+                    'description': 'To use mTLS (requires nginx/Apache configuration):',
+                    'env_vars': {
+                        'AUTH_MTLS_ENABLED': 'true',
+                        'AUTH_MTLS_REQUIRE_CERT': 'true',
+                        'AUTH_MTLS_CA_CERTS_PATH': 'certs/ca-cert.pem'
+                    },
+                    'note': 'Requires web server (nginx/Apache) configured for TLS client authentication. See MTLS_SETUP_GUIDE.md'
+                },
                 'no_auth': {
                     'description': 'To disable authentication (development only):',
                     'env_vars': {
                         'AUTH_OAUTH_ENABLED': 'false',
-                        'AUTH_BASIC_ENABLED': 'false'
+                        'AUTH_BASIC_ENABLED': 'false',
+                        'AUTH_MTLS_ENABLED': 'false'
                     }
                 }
             },
             'usage_examples': {
                 'curl_jwt': f"curl -H 'Authorization: Bearer <token>' http://localhost:5000/scim/v2/Users",
                 'curl_basic': "curl -u admin:admin123 http://localhost:5000/scim/v2/Users",
+                'curl_mtls': "curl --cert certs/client-admin.pem --cacert certs/ca-cert.pem https://localhost:5000/scim/v2/Users",
                 'python_jwt': "headers = {'Authorization': 'Bearer <token>'}",
-                'python_basic': "auth = ('admin', 'admin123')"
+                'python_basic': "auth = ('admin', 'admin123')",
+                'python_mtls': "cert=('certs/client-admin.pem',), verify='certs/ca-cert.pem'"
             }
         }
         
