@@ -259,6 +259,77 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    put:
+      summary: Replace user
+      description: |
+        Replace an entire user resource (SCIM 2.0 RFC 7644 Section 3.5.1).
+        
+        PUT performs a full replacement of the user resource. All attributes must be provided in the request body.
+        Any attributes not included in the request will be removed from the resource (except immutable attributes like id and meta.created).
+        
+        **Key differences from PATCH:**
+        - PUT replaces the entire resource
+        - PATCH performs partial updates using operations
+        
+        **Required attributes:**
+        - schemas
+        - userName
+        
+        **Immutable attributes (preserved):**
+        - id
+        - meta.created
+        - meta.location
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/scim+json:
+            schema:
+              $ref: '#/components/schemas/User'
+            example:
+              schemas:
+                - urn:ietf:params:scim:schemas:core:2.0:User
+                - urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
+              userName: john.doe@example.com
+              name:
+                givenName: John
+                familyName: Doe
+              emails:
+                - value: john.doe@example.com
+                  type: work
+                  primary: true
+              active: true
+              department: Engineering
+              urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:
+                manager:
+                  value: manager-user-id-123
+                  displayName: Jane Manager
+      responses:
+        '200':
+          description: User replaced successfully
+          content:
+            application/scim+json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
     patch:
       summary: Update user
       description: Update user attributes using SCIM PATCH operations

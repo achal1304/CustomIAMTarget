@@ -319,8 +319,8 @@ def users():
 def user_by_id(user_id):
     """
     GET /scim/v2/Users/{id} - Get user
-    PUT /scim/v2/Users/{id} - Replace user (not supported, use PATCH)
-    PATCH /scim/v2/Users/{id} - Update user
+    PUT /scim/v2/Users/{id} - Replace user (full update)
+    PATCH /scim/v2/Users/{id} - Update user (partial update)
     DELETE /scim/v2/Users/{id} - Delete user
     """
     if request.method == 'GET':
@@ -328,12 +328,11 @@ def user_by_id(user_id):
         return jsonify(response_body), status_code
     
     elif request.method == 'PUT':
-        # PUT is not implemented for users in SCIM 2.0 - use PATCH instead
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "status": "501",
-            "detail": "PUT operation not supported for Users. Use PATCH instead."
-        }), 501
+        response_body, status_code = user_endpoints.put_user(
+            user_id,
+            request.get_json()
+        )
+        return jsonify(response_body), status_code
     
     elif request.method == 'PATCH':
         response_body, status_code = user_endpoints.patch_user(

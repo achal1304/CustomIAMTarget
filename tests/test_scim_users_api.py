@@ -601,11 +601,61 @@ class TestUsersDelete:
         assert response.status_code == 404
 
 
-class TestUsersPutNotSupported:
-    """Test PUT /scim/v2/Users/{id} - Should return 501"""
+class TestUsersPut:
+    """Test PUT /scim/v2/Users/{id} - Replace user"""
     
-    def test_put_user_not_supported(self, client, auth_headers):
-        """Test that PUT returns 501 Not Implemented"""
+    def test_put_user_success(self, client, auth_headers):
+        """Test PUT replaces entire user resource"""
+        # Create user first
+        user_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "put@example.com",
+            "active": True,
+            "name": {
+                "givenName": "Original",
+                "familyName": "Name"
+            },
+            "department": "Engineering"
+        }
+        create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
+        user_id = create_response.get_json()['id']
+        
+        # Replace with PUT (complete replacement)
+        replacement_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "put@example.com",
+            "active": False,
+            "name": {
+                "givenName": "Updated",
+                "familyName": "User"
+            }
+            # Note: department is intentionally omitted to test full replacement
+        }
+        response = client.put(f'/scim/v2/Users/{user_id}', json=replacement_data, headers=auth_headers, content_type='application/json')
+        
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data['userName'] == "put@example.com"
+        assert data['active'] is False
+        assert data['name']['givenName'] == "Updated"
+        assert data['name']['familyName'] == "User"
+        # Department should be None/absent since it wasn't in replacement
+        assert data.get('department') is None
+        assert data['id'] == user_id  # ID should be preserved
+    
+    def test_put_user_not_found(self, client, auth_headers):
+        """Test PUT on non-existent user returns 404"""
+        user_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "put@example.com",
+            "active": True
+        }
+        response = client.put('/scim/v2/Users/non-existent', json=user_data, headers=auth_headers, content_type='application/json')
+        
+        assert response.status_code == 404
+    
+    def test_put_user_missing_username(self, client, auth_headers):
+        """Test PUT without userName returns 400"""
         # Create user first
         user_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -615,12 +665,45 @@ class TestUsersPutNotSupported:
         create_response = client.post('/scim/v2/Users', json=user_data, headers=auth_headers)
         user_id = create_response.get_json()['id']
         
-        # Try PUT
-        response = client.put(f'/scim/v2/Users/{user_id}', json=user_data, headers=auth_headers, content_type='application/json')
+        # Try PUT without userName
+        replacement_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "active": False
+        }
+        response = client.put(f'/scim/v2/Users/{user_id}', json=replacement_data, headers=auth_headers, content_type='application/json')
         
-        assert response.status_code == 501
+        assert response.status_code == 400
         data = response.get_json()
-        assert 'PUT operation not supported' in data['detail']
+        assert 'userName is required' in data['detail']
+    
+    def test_put_user_duplicate_username(self, client, auth_headers):
+        """Test PUT with duplicate userName returns 409"""
+        # Create two users
+        user1_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "user1@example.com",
+            "active": True
+        }
+        user2_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "user2@example.com",
+            "active": True
+        }
+        client.post('/scim/v2/Users', json=user1_data, headers=auth_headers)
+        create_response2 = client.post('/scim/v2/Users', json=user2_data, headers=auth_headers)
+        user2_id = create_response2.get_json()['id']
+        
+        # Try to PUT user2 with user1's userName
+        replacement_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "userName": "user1@example.com",  # Duplicate
+            "active": True
+        }
+        response = client.put(f'/scim/v2/Users/{user2_id}', json=replacement_data, headers=auth_headers, content_type='application/json')
+        
+        assert response.status_code == 409
+        data = response.get_json()
+        assert 'already exists' in data['detail']
 
 
 # Made with Bob

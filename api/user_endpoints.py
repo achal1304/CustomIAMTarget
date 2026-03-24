@@ -302,6 +302,67 @@ class UserEndpoints:
         except Exception as e:
             raise SCIMError(500, None, f"Internal server error: {str(e)}")
     
+    def put_user(self, user_id: str, request_body: Dict[str, Any]) -> tuple[Dict[str, Any], int]:
+        """
+        PUT /Users/{id}
+        Replace user (SCIM 2.0 RFC 7644 Section 3.5.1)
+        
+        PUT replaces the entire resource with the provided representation.
+        All attributes must be provided; missing attributes will be removed.
+        
+        Args:
+            user_id: User identifier
+            request_body: Complete SCIM User resource
+        
+        Returns:
+            Tuple of (response_body, status_code)
+        """
+        try:
+            # Validate schemas
+            schemas = request_body.get("schemas", [])
+            if User.CORE_SCHEMA not in schemas:
+                raise SCIMError(400, "invalidValue", "Missing required schema")
+            
+            # Get existing user
+            existing_user = self.user_repo.get_by_id(user_id)
+            if not existing_user:
+                raise SCIMError(404, None, f"User with id '{user_id}' not found")
+            
+            # Validate userName uniqueness if changed
+            new_username = request_body.get("userName")
+            if not new_username:
+                raise SCIMError(400, "invalidValue", "userName is required")
+            
+            if new_username.lower() != existing_user.user_name.lower():
+                existing_by_username = self.user_repo.get_by_username(new_username)
+                if existing_by_username:
+                    raise SCIMError(409, "uniqueness", f"userName '{new_username}' already exists")
+            
+            # Create new user object from request (preserving id and meta.created)
+            new_user = User.from_dict(request_body, self.user_repo, self.supporting_data_repo)
+            
+            # Preserve immutable attributes
+            new_user.id = existing_user.id
+            new_user.meta.created = existing_user.meta.created
+            new_user.meta.location = existing_user.meta.location
+            
+            # Update last modified
+            new_user._update_last_modified()
+            
+            # Save replaced user
+            self.user_repo.save(new_user)
+            
+            # Return updated user
+            response = new_user.to_dict()
+            return response, 200
+            
+        except ValidationError as e:
+            raise SCIMError(400, "invalidValue", str(e))
+        except SCIMError:
+            raise
+        except Exception as e:
+            raise SCIMError(500, None, f"Internal server error: {str(e)}")
+    
     def patch_user(self, user_id: str, request_body: Dict[str, Any]) -> tuple[Dict[str, Any], int]:
         """
         PATCH /Users/{id}
