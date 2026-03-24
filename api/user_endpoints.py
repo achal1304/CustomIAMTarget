@@ -433,33 +433,37 @@ class UserEndpoints:
                     self._apply_replace_operation(user, key, val)
             return
         
+        # Normalize path - extract attribute name from schema URN if present
+        # Supports both "department" and "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.department"
+        normalized_path = self._normalize_path(path)
+        
         # Handle specific paths
-        if path == "active":
+        if normalized_path == "active":
             user.active = bool(value)
-        elif path == "userName":
+        elif normalized_path == "userName":
             # Check uniqueness
             existing = self.user_repo.get_by_username(value)
             if existing and existing.id != user.id:
                 raise SCIMError(409, "uniqueness", f"userName '{value}' already exists")
             user.user_name = value
-        elif path == "externalId":
+        elif normalized_path == "externalId":
             user.external_id = value
-        elif path == "department":
+        elif normalized_path == "department":
             user.department = value
-        elif path == "gender":
+        elif normalized_path == "gender":
             user.gender = value
-        elif path == "name.givenName":
+        elif normalized_path == "name.givenName":
             if not user.name:
                 user.name = Name()
             user.name.given_name = value
-        elif path == "name.familyName":
+        elif normalized_path == "name.familyName":
             if not user.name:
                 user.name = Name()
             user.name.family_name = value
-        elif path == "emails":
+        elif normalized_path == "emails":
             if isinstance(value, list):
                 user.emails = [Email(**email) for email in value]
-        elif path.startswith("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"):
+        elif normalized_path == "manager" or path.startswith("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"):
             if value:
                 manager_id = value.get("value") if isinstance(value, dict) else value
                 display_name = value.get("displayName") if isinstance(value, dict) else None
@@ -469,6 +473,35 @@ class UserEndpoints:
         
         user._update_last_modified()
     
+    def _normalize_path(self, path: str) -> str:
+        """
+        Normalize SCIM path to extract attribute name
+        
+        Handles both simple paths and schema-qualified paths:
+        - "department" -> "department"
+        - "urn:ietf:params:scim:schemas:core:2.0:User:department" -> "department"
+        - "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.department" -> "department"
+        - "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager" -> "manager"
+        - "name.givenName" -> "name.givenName"
+        """
+        if not path:
+            return path
+        
+        # Check if path contains a schema URN
+        if path.startswith("urn:ietf:params:scim:schemas:"):
+            # Extract attribute name after the schema URN
+            # Handle both ":" and "." as separators
+            if ":User:" in path:
+                # Format: urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager
+                return path.split(":User:")[-1]
+            elif ":User." in path or ".User." in path:
+                # Format: urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.department
+                parts = path.split(".")
+                return parts[-1] if parts else path
+        
+        # Return as-is for simple paths
+        return path
+    
     def _apply_add_operation(self, user, path: str, value: Any):
         """Apply PATCH add operation"""
         # For most attributes, add is same as replace
@@ -476,13 +509,16 @@ class UserEndpoints:
     
     def _apply_remove_operation(self, user, path: str):
         """Apply PATCH remove operation"""
-        if path == "department":
+        # Normalize path to handle schema-qualified paths
+        normalized_path = self._normalize_path(path)
+        
+        if normalized_path == "department":
             user.department = None
-        elif path == "gender":
+        elif normalized_path == "gender":
             user.gender = None
-        elif path == "externalId":
+        elif normalized_path == "externalId":
             user.external_id = None
-        elif path.startswith("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"):
+        elif normalized_path == "manager" or path.startswith("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager"):
             user.clear_manager()
         
         user._update_last_modified()
