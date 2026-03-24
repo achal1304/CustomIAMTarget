@@ -1,0 +1,137 @@
+# Local mTLS Testing Dockerfile with nginx
+# For testing mTLS locally before Oracle deployment
+# nginx handles TLS termination and certificate validation
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=5000 \
+    AUTH_MTLS_ENABLED=true
+
+# Install system dependencies INCLUDING nginx and supervisor
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    nginx \
+    openssl \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0
+
+# Copy application code
+COPY . .
+
+# Verify certificates exist (should be generated locally first)
+RUN if [ ! -f certs/ca-cert.pem ]; then \
+        echo "⚠️  Certificates not found! Run ./tools/generate_mtls_certs.sh first"; \
+        exit 1; \
+    fi
+
+# Create nginx configuration for mTLS testing
+RUN cat > /etc/nginx/sites-available/scim-mtls.conf << 'EOF'
+upstream flask_backend {
+    server 127.0.0.1:5000;
+}
+
+# HTTP endpoint (no mTLS, for basic testing)
+server {
+    listen 8080;
+    server_name _;
+    
+    location / {
+        proxy_pass http://flask_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# HTTPS endpoint with mTLS
+server {
+    listen 8443 ssl;
+    server_name _;
+    
+    # Server certificate
+    ssl_certificate /app/certs/server-cert.pem;
+    ssl_certificate_key /app/certs/server-key.pem;
+    
+    # Client certificate validation
+    ssl_client_certificate /app/certs/ca-cert.pem;
+    ssl_verify_client optional;  # Set to 'on' to require certificate
+    ssl_verify_depth 2;
+    
+    # TLS settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    
+    location / {
+        proxy_pass http://flask_backend;
+        
+        # Pass certificate information to Flask
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        
+        # mTLS certificate headers (Flask reads these)
+        proxy_set_header SSL-Client-Cert $ssl_client_cert;
+        proxy_set_header SSL-Client-S-DN $ssl_client_s_dn;
+        proxy_set_header SSL-Client-Verify $ssl_client_verify;
+        proxy_set_header SSL-Client-I-DN $ssl_client_i_dn;
+    }
+}
+EOF
+
+# Enable nginx site and disable default
+RUN ln -sf /etc/nginx/sites-available/scim-mtls.conf /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    echo "daemon off;" >> /etc/nginx/nginx.conf
+
+# Create supervisor config to run both Flask and nginx
+RUN cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
+[supervisord]
+nodaemon=true
+logfile=/dev/stdout
+logfile_maxbytes=0
+user=root
+
+[program:flask]
+command=gunicorn --bind 127.0.0.1:5000 --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - --log-level info --preload app:app
+directory=/app
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+priority=1
+
+[program:nginx]
+command=/usr/sbin/nginx
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+priority=2
+EOF
+
+# Expose both HTTP and HTTPS ports
+EXPOSE 8080 8443
+
+# Health check on HTTP port
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
+
+# Start supervisor (manages both Flask and nginx)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

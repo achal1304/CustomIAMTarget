@@ -1,0 +1,46 @@
+# Production Dockerfile for Oracle/Cloud Deployment
+# Oracle handles TLS termination, so no nginx needed
+# Lightweight and fast deployment
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=5000
+
+# Install minimal system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir gunicorn==21.2.0
+
+# Copy application code
+COPY . .
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/ || exit 1
+
+# Expose port (Oracle will route to this)
+EXPOSE ${PORT}
+
+# Run with gunicorn (production-ready WSGI server)
+CMD gunicorn \
+    --bind 0.0.0.0:${PORT} \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info \
+    --preload \
+    app:app
