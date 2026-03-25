@@ -449,6 +449,12 @@ class UserEndpoints:
         elif normalized_path == "externalId":
             user.external_id = value
         elif normalized_path == "department":
+            # Validate department against predefined values
+            if value and self.supporting_data_repo:
+                if not self.supporting_data_repo.validate_department_name(value):
+                    valid_depts = [d.name for d in self.supporting_data_repo.get_all_departments()]
+                    raise SCIMError(400, "invalidValue",
+                        f"Invalid department '{value}'. Must be one of: {', '.join(valid_depts)}")
             user.department = value
         elif normalized_path == "gender" or path.startswith("urn:ietf:params:scim:schemas:extension:custom:2.0:User"):
             # Gender should be in custom extension, but accept both for backward compatibility
