@@ -43,6 +43,9 @@ def seed_users(user_repo, supporting_data_repo) -> List[User]:
         "Finance", "Legal", "Operations", "Customer Support", "Executive"
     ]
     
+    # Gender values for diversity
+    genders = ["Male", "Female", "Non-binary", "Prefer not to say"]
+    
     users = []
     
     for i in range(100):
@@ -52,9 +55,14 @@ def seed_users(user_repo, supporting_data_repo) -> List[User]:
         email = username
         department = random.choice(departments)
         
+        # Generate deterministic UUID based on index
+        # This ensures same users get same IDs across runs
+        user_id = f"user-{i:04d}-0000-0000-0000-{i:012d}"
+        
         # Create user data
         user_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": user_id,
             "userName": username,
             "name": {
                 "givenName": first_name,
@@ -73,6 +81,13 @@ def seed_users(user_repo, supporting_data_repo) -> List[User]:
         # Add enterprise extension for some users (managers will be set later)
         if i % 3 == 0:  # Every 3rd user gets enterprise extension
             user_data["schemas"].append("urn:ietf:params:scim:schemas:extension:enterprise:2.0:User")
+        
+        # Add custom extension with gender for 80% of users (some users may not specify)
+        if i % 5 != 0:  # 80% of users have gender specified
+            user_data["schemas"].append("urn:ietf:params:scim:schemas:extension:custom:2.0:User")
+            user_data["urn:ietf:params:scim:schemas:extension:custom:2.0:User"] = {
+                "gender": random.choice(genders)
+            }
         
         # Create user object
         user = User.from_dict(user_data, user_repo, supporting_data_repo)
@@ -135,9 +150,13 @@ def seed_groups(group_repo, user_repo, users: List[User]) -> List[Group]:
                 members.append(member)
                 user_index += 1
         
+        # Generate deterministic UUID for group
+        group_id = f"group-{i:03d}-0000-0000-0000-{i:012d}"
+        
         # Create group
         group_data = {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": group_id,
             "displayName": group_name,
             "members": [m.to_dict() for m in members],
             "externalId": f"group-ext-{i:02d}"
@@ -194,6 +213,18 @@ def seed_all_data(user_repo, group_repo, supporting_data_repo):
     print(f"  Total Group Memberships: {total_memberships}")
     print(f"  Users in at least one group: {users_in_groups}")
     print(f"  Users with managers: {sum(1 for u in users if u.manager)}")
+    print(f"  Users with gender specified: {sum(1 for u in users if u.gender)}")
+    
+    # Gender distribution
+    if any(u.gender for u in users):
+        gender_counts = {}
+        for u in users:
+            if u.gender:
+                gender_counts[u.gender] = gender_counts.get(u.gender, 0) + 1
+        print(f"  Gender distribution:")
+        for gender, count in sorted(gender_counts.items()):
+            print(f"    - {gender}: {count}")
+    
     print("="*60 + "\n")
 
 # Made with Bob
