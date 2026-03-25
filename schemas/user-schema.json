@@ -138,17 +138,6 @@
       "uniqueness": "none"
     },
     {
-      "name": "gender",
-      "type": "string",
-      "multiValued": false,
-      "description": "The user's gender (optional demographic field)",
-      "required": false,
-      "caseExact": false,
-      "mutability": "readWrite",
-      "returned": "default",
-      "uniqueness": "none"
-    },
-    {
       "name": "groups",
       "type": "complex",
       "multiValued": true,

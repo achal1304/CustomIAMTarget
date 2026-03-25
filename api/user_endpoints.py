@@ -450,7 +450,8 @@ class UserEndpoints:
             user.external_id = value
         elif normalized_path == "department":
             user.department = value
-        elif normalized_path == "gender":
+        elif normalized_path == "gender" or path.startswith("urn:ietf:params:scim:schemas:extension:custom:2.0:User"):
+            # Gender should be in custom extension, but accept both for backward compatibility
             user.gender = value
         elif normalized_path == "name.givenName":
             if not user.name:
@@ -514,7 +515,7 @@ class UserEndpoints:
         
         if normalized_path == "department":
             user.department = None
-        elif normalized_path == "gender":
+        elif normalized_path == "gender" or path.startswith("urn:ietf:params:scim:schemas:extension:custom:2.0:User"):
             user.gender = None
         elif normalized_path == "externalId":
             user.external_id = None

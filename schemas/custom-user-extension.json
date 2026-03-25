@@ -1,0 +1,23 @@
+{
+  "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+  "id": "urn:ietf:params:scim:schemas:extension:custom:2.0:User",
+  "name": "CustomUser",
+  "description": "Custom User Extension - Contains demographic and organization-specific attributes not defined in SCIM core schema",
+  "attributes": [
+    {
+      "name": "gender",
+      "type": "string",
+      "multiValued": false,
+      "description": "The user's gender (optional demographic field)",
+      "required": false,
+      "caseExact": false,
+      "mutability": "readWrite",
+      "returned": "default",
+      "uniqueness": "none"
+    }
+  ],
+  "meta": {
+    "resourceType": "Schema",
+    "location": "/Schemas/urn:ietf:params:scim:schemas:extension:custom:2.0:User"
+  }
+}

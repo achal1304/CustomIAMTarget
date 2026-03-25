@@ -92,12 +92,13 @@ class DiscoveryEndpoints:
         """
         schemas = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-            "totalResults": 3,
+            "totalResults": 4,
             "startIndex": 1,
-            "itemsPerPage": 3,
+            "itemsPerPage": 4,
             "Resources": [
                 self._get_user_schema(),
                 self._get_enterprise_user_schema(),
+                self._get_custom_user_schema(),
                 self._get_group_schema()
             ]
         }
@@ -120,6 +121,8 @@ class DiscoveryEndpoints:
             return self._get_user_schema(), 200
         elif schema_id == "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User":
             return self._get_enterprise_user_schema(), 200
+        elif schema_id == "urn:ietf:params:scim:schemas:extension:custom:2.0:User":
+            return self._get_custom_user_schema(), 200
         elif schema_id == "urn:ietf:params:scim:schemas:core:2.0:Group":
             return self._get_group_schema(), 200
         else:
@@ -156,6 +159,10 @@ class DiscoveryEndpoints:
                     "schemaExtensions": [
                         {
                             "schema": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                            "required": False
+                        },
+                        {
+                            "schema": "urn:ietf:params:scim:schemas:extension:custom:2.0:User",
                             "required": False
                         }
                     ],
@@ -204,6 +211,10 @@ class DiscoveryEndpoints:
                 "schemaExtensions": [
                     {
                         "schema": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
+                        "required": False
+                    },
+                    {
+                        "schema": "urn:ietf:params:scim:schemas:extension:custom:2.0:User",
                         "required": False
                     }
                 ],
@@ -449,6 +460,32 @@ class DiscoveryEndpoints:
             "meta": {
                 "resourceType": "Schema",
                 "location": f"{self.base_url}/Schemas/urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+            }
+        }
+    
+    def _get_custom_user_schema(self) -> Dict[str, Any]:
+        """Get Custom User extension schema definition"""
+        return {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Schema"],
+            "id": "urn:ietf:params:scim:schemas:extension:custom:2.0:User",
+            "name": "CustomUser",
+            "description": "Custom User Extension - Contains demographic and organization-specific attributes not defined in SCIM core schema",
+            "attributes": [
+                {
+                    "name": "gender",
+                    "type": "string",
+                    "multiValued": False,
+                    "description": "The user's gender (optional demographic field)",
+                    "required": False,
+                    "caseExact": False,
+                    "mutability": "readWrite",
+                    "returned": "default",
+                    "uniqueness": "none"
+                }
+            ],
+            "meta": {
+                "resourceType": "Schema",
+                "location": f"{self.base_url}/Schemas/urn:ietf:params:scim:schemas:extension:custom:2.0:User"
             }
         }
     

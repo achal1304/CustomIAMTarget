@@ -130,6 +130,7 @@ class User:
     
     CORE_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"
     ENTERPRISE_SCHEMA = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+    CUSTOM_SCHEMA = "urn:ietf:params:scim:schemas:extension:custom:2.0:User"
     
     def __init__(
         self,
@@ -257,8 +258,12 @@ class User:
         """
         schemas = [self.CORE_SCHEMA]
         has_enterprise_data = self.manager or self.department or self.employee_number
+        has_custom_data = self.gender
+        
         if include_enterprise_extension and has_enterprise_data:
             schemas.append(self.ENTERPRISE_SCHEMA)
+        if has_custom_data:
+            schemas.append(self.CUSTOM_SCHEMA)
         
         result = {
             "schemas": schemas,
@@ -278,9 +283,6 @@ class User:
         if self.emails:
             result["emails"] = [email.to_dict() for email in self.emails]
         
-        if self.gender:
-            result["gender"] = self.gender
-        
         if self.groups:
             result["groups"] = [group.to_dict() for group in self.groups]
         
@@ -294,6 +296,13 @@ class User:
             if self.manager:
                 enterprise_ext["manager"] = self.manager.to_dict()
             result[self.ENTERPRISE_SCHEMA] = enterprise_ext
+        
+        # Custom extension (for gender and other non-standard attributes)
+        if has_custom_data:
+            custom_ext = {}
+            if self.gender:
+                custom_ext["gender"] = self.gender
+            result[self.CUSTOM_SCHEMA] = custom_ext
         
         return result
     
@@ -363,6 +372,16 @@ class User:
         if not department and "department" in data:
             department = data.get("department")
         
+        # Parse Custom extension data (gender and other non-standard attributes)
+        gender = None
+        custom_data = data.get(cls.CUSTOM_SCHEMA, {})
+        if custom_data:
+            gender = custom_data.get("gender")
+        
+        # Also accept gender at root level for backward compatibility (non-standard)
+        if not gender and "gender" in data:
+            gender = data.get("gender")
+        
         # Validate department against predefined values
         if department and supporting_data_repo:
             if not supporting_data_repo.validate_department_name(department):
@@ -381,7 +400,7 @@ class User:
             active=data.get("active", True),
             department=department,
             employee_number=employee_number,
-            gender=data.get("gender"),
+            gender=gender,
             manager=manager
         )
         
