@@ -206,6 +206,8 @@ paths:
             example:
               schemas:
                 - urn:ietf:params:scim:schemas:core:2.0:User
+                - urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
+                - urn:ietf:params:scim:schemas:extension:custom:2.0:User
               userName: john.doe@example.com
               name:
                 givenName: John
@@ -215,7 +217,14 @@ paths:
                   type: work
                   primary: true
               active: true
-              department: Engineering
+              urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:
+                department: Engineering
+                employeeNumber: EMP-12345
+                manager:
+                  value: manager-user-id-123
+                  displayName: Jane Manager
+              urn:ietf:params:scim:schemas:extension:custom:2.0:User:
+                gender: Male
       responses:
         '201':
           description: User created
@@ -298,6 +307,7 @@ paths:
               schemas:
                 - urn:ietf:params:scim:schemas:core:2.0:User
                 - urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
+                - urn:ietf:params:scim:schemas:extension:custom:2.0:User
               userName: john.doe@example.com
               name:
                 givenName: John
@@ -307,11 +317,14 @@ paths:
                   type: work
                   primary: true
               active: true
-              department: Engineering
               urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:
+                department: Engineering
+                employeeNumber: EMP-12345
                 manager:
                   value: manager-user-id-123
                   displayName: Jane Manager
+              urn:ietf:params:scim:schemas:extension:custom:2.0:User:
+                gender: Male
       responses:
         '200':
           description: User replaced successfully
@@ -706,45 +719,158 @@ components:
           type: string
           format: uuid
           readOnly: true
+          description: Unique identifier for the User
         schemas:
           type: array
           items:
             type: string
+          description: SCIM schema URNs (core + extensions)
+          example:
+            - urn:ietf:params:scim:schemas:core:2.0:User
+            - urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
+            - urn:ietf:params:scim:schemas:extension:custom:2.0:User
         userName:
           type: string
+          description: Unique identifier for authentication
         externalId:
           type: string
+          description: External identifier from provisioning client
         name:
           type: object
           properties:
             givenName:
               type: string
+              description: First name
             familyName:
               type: string
+              description: Last name
         emails:
           type: array
+          items:
+            type: object
+            required:
+              - value
+            properties:
+              value:
+                type: string
+                format: email
+                description: Email address
+              type:
+                type: string
+                enum: [work]
+                default: work
+              primary:
+                type: boolean
+                default: true
+        active:
+          type: boolean
+          default: true
+          description: Account status
+        groups:
+          type: array
+          readOnly: true
+          description: Group memberships (computed, read-only)
           items:
             type: object
             properties:
               value:
                 type: string
+                description: Group ID
+              display:
+                type: string
+                description: Group display name
+              $ref:
+                type: string
+                description: Group URI
               type:
                 type: string
-              primary:
-                type: boolean
-        active:
-          type: boolean
-        department:
-          type: string
-        gender:
-          type: string
-        groups:
-          type: array
-          readOnly: true
-          items:
-            type: object
+                enum: [direct]
+        urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:
+          type: object
+          description: Enterprise User Extension
+          properties:
+            employeeNumber:
+              type: string
+              description: Employee number
+            department:
+              type: string
+              description: Organizational department
+              enum:
+                - Engineering
+                - Product Management
+                - Sales
+                - Marketing
+                - Human Resources
+                - Finance
+                - Legal
+                - Operations
+                - Customer Support
+                - Executive
+            manager:
+              type: object
+              description: Manager reference
+              properties:
+                value:
+                  type: string
+                  description: Manager user ID
+                displayName:
+                  type: string
+                  description: Manager display name
+                $ref:
+                  type: string
+                  description: Manager URI
+        urn:ietf:params:scim:schemas:extension:custom:2.0:User:
+          type: object
+          description: Custom User Extension
+          properties:
+            gender:
+              type: string
+              description: User gender (optional demographic field)
         meta:
           $ref: '#/components/schemas/Meta'
+
+    EnterpriseUserExtension:
+      type: object
+      description: Enterprise User Extension Schema (urn:ietf:params:scim:schemas:extension:enterprise:2.0:User)
+      properties:
+        employeeNumber:
+          type: string
+          description: Numeric or alphanumeric identifier assigned to a person
+        department:
+          type: string
+          description: Identifies the name of a department
+          enum:
+            - Engineering
+            - Product Management
+            - Sales
+            - Marketing
+            - Human Resources
+            - Finance
+            - Legal
+            - Operations
+            - Customer Support
+            - Executive
+        manager:
+          type: object
+          description: The user's manager
+          properties:
+            value:
+              type: string
+              description: The ID of the SCIM resource representing the user's manager
+            displayName:
+              type: string
+              description: The displayName of the user's manager
+            $ref:
+              type: string
+              description: The URI of the SCIM resource representing the user's manager
+
+    CustomUserExtension:
+      type: object
+      description: Custom User Extension Schema (urn:ietf:params:scim:schemas:extension:custom:2.0:User)
+      properties:
+        gender:
+          type: string
+          description: The user's gender (optional demographic field)
 
     Group:
       type: object
